@@ -1,76 +1,116 @@
 import os
+import sys
 import json
-import time
-import datetime
-import importlib
+import requests
 from flask import Flask, request, jsonify
-from config import AGENT_NAME, SECRET_PASSCODE, MEMORY_FILE, CREDENTIALS_FILE
+from config import AGENT_NAME, SECRET_PASSCODE
 
 app = Flask(__name__)
 
-SKILLS_DIR = "skills"
-if not os.path.exists(SKILLS_DIR):
-    os.makedirs(SKILLS_DIR)
+RENDER_BASE_URL = "https://api.render.com/v1"
 
-def load_vault_file(filepath):
-    if os.path.exists(filepath):
-        with open(filepath, "r") as f:
-            return json.load(f)
-    return {"logs": [], "credentials": [], "projects": []}
+def get_render_owner_id(headers):
+    """
+    Fetches the authenticated owner/user ID from Render API
+    """
+    try:
+        res = requests.get(f"{RENDER_BASE_URL}/owners", headers=headers)
+        if res.status_code == 200:
+            owners = res.json()
+            if isinstance(owners, list) and len(owners) > 0:
+                # Returns the first owner's ID (usr-xxx or tea-xxx)
+                return owners[0].get("owner", {}).get("id")
+    except Exception as e:
+        print(f"Error fetching ownerId: {e}")
+    return None
 
-def save_vault_file(filepath, data):
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=4)
+def deploy_to_render(api_key, github_repo):
+    """
+    Triggers automated cloud deployment on Render via API
+    """
+    headers = {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    
+    owner_id = get_render_owner_id(headers)
+    if not owner_id:
+        return {"success": False, "error": "Failed to retrieve valid Render ownerId using provided API Key."}
 
-class CognitiveAgentCore:
-    def __init__(self):
-        self.agent_name = AGENT_NAME
+    repo_name = github_repo.rstrip("/").split("/")[-1].lower()
+    
+    payload = {
+        "type": "web_service",
+        "name": repo_name,
+        "ownerId": owner_id,
+        "repo": github_repo,
+        "autoDeploy": "yes",
+        "serviceDetails": {
+            "env": "python",
+            "envSpecificDetails": {
+                "buildCommand": "pip install -r requirements.txt",
+                "startCommand": "python agent_core.py"
+            },
+            "region": "singapore"
+        }
+    }
+    
+    try:
+        response = requests.post(f"{RENDER_BASE_URL}/services", json=payload, headers=headers)
+        if response.status_code in [200, 201]:
+            data = response.json()
+            service_url = data.get("service", {}).get("serviceDetails", {}).get("url", "Deployment Initiated")
+            return {"success": True, "url": service_url, "raw": data}
+        else:
+            return {"success": False, "error": response.text}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
-    def process_user_command(self, command):
-        timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        if "learn" in command.lower():
-            return f"[{timestamp}] [Cognitive Core]: Mujhe ye skill sahi nahi aati. Kya main documentation fetch karke ise seekh loon?"
-        return f"[{timestamp}] [Cognitive Core]: Command '{command}' analyzed and sub-agent task routing initialized."
-
-class SkillEngine:
-    @staticmethod
-    def learn(skill_name, code_content):
-        file_path = os.path.join(SKILLS_DIR, f"{skill_name}.py")
-        with open(file_path, "w") as f:
-            f.write(code_content)
-        return f"[Self-Upgrade]: Nayi skill '{skill_name}' learn aur register ho gayi hai!"
-
-    @staticmethod
-    def execute(skill_name, *args, **kwargs):
-        try:
-            module = importlib.import_module(f"{SKILLS_DIR}.{skill_name}")
-            importlib.reload(module)
-            return module.run(*args, **kwargs)
-        except Exception as e:
-            return f"[Execution Error]: {str(e)}"
-
-@app.route("/api/command", methods=["POST"])
+@app.route('/api/command', methods=['POST'])
 def handle_command():
-    data = request.json or {}
+    data = request.get_json() or {}
+    
     if data.get("passcode") != SECRET_PASSCODE:
         return jsonify({"status": "error", "message": "Unauthorized Access"}), 403
+        
+    command = data.get("command")
+    payload = data.get("payload", {})
+    
+    if command in ["Check Server Status", "Get Engine Status"]:
+        return jsonify({
+            "status": "success",
+            "output": f"{AGENT_NAME} local core active.",
+            "cognitive": "Server healthy and accepting payload requests."
+        })
+        
+    elif command == "DEPLOY_TO_CLOUD":
+        render_api_key = payload.get("render_api_key")
+        github_repo = payload.get("github_repo", "https://github.com/Wfirstagent/god-agent-core")
+        
+        if not render_api_key:
+            return jsonify({
+                "status": "error",
+                "message": "Missing 'render_api_key' in payload."
+            }), 400
+            
+        deploy_res = deploy_to_render(render_api_key, github_repo)
+        
+        if deploy_res["success"]:
+            return jsonify({
+                "status": "success",
+                "output": "Cloud deployment successfully triggered via Render API!",
+                "live_url": deploy_res["url"],
+                "cognitive": f"Agent auto-hosting initialized on repository {github_repo}."
+            })
+        else:
+            return jsonify({
+                "status": "error",
+                "message": "Render Deployment Failed",
+                "details": deploy_res["error"]
+            }), 500
 
-    user_command = data.get("command", "")
-    core_engine = CognitiveAgentCore()
-    cognitive_log = core_engine.process_user_command(user_command)
+    return jsonify({"status": "error", "message": "Unknown Command"}), 400
 
-    memory = load_vault_file(MEMORY_FILE)
-    timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    memory["logs"].append({"timestamp": timestamp, "command": user_command, "status": "executed"})
-    save_vault_file(MEMORY_FILE, memory)
-
-    return jsonify({
-        "status": "success",
-        "cognitive": cognitive_log,
-        "output": f"Command '{user_command}' processed successfully.",
-        "vault_status": "Synced to local vault buffer"
-    })
-
-if __name__ == "__main__":
-    print(f"[{AGENT_NAME} Core Engine Running...]")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)

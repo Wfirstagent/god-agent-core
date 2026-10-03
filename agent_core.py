@@ -1,12 +1,14 @@
 import os
 import sys
 import json
+import psutil
+import time
 import requests
 from flask import Flask, request, jsonify
 from config import AGENT_NAME, SECRET_PASSCODE
 
 app = Flask(__name__)
-
+START_TIME = time.time()
 RENDER_BASE_URL = "https://api.render.com/v1"
 
 def get_render_owner_id(headers):
@@ -77,7 +79,7 @@ def home():
             .badge {{ background: #0284c7; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px; }}
             #chat-container {{ flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }}
             .msg {{ max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }}
-            .agent {{ background: #1e293b; color: #38bdf8; border: 1px solid #334155; align-self: flex-start; }}
+            .agent {{ background: #1e293b; color: #38bdf8; border: 1px solid #334155; align-self: flex-start; white-space: pre-wrap; }}
             .user {{ background: #2563eb; color: #fff; align-self: flex-end; }}
             .system {{ background: #0f172a; color: #94a3b8; font-size: 12px; align-self: center; border: 1px dashed #334155; text-align: center; }}
             footer {{ background: #111827; padding: 12px; border-top: 1px solid #1f2937; display: flex; gap: 8px; flex-direction: column; }}
@@ -95,8 +97,8 @@ def home():
         </header>
 
         <div id="chat-container">
-            <div class="msg system">⚡ God Agent Interactive Console Ready</div>
-            <div class="msg agent">Welcome Master! Direct JSON payload and cognitive commands are active. Enter your passcode below to send commands.</div>
+            <div class="msg system">⚡ God Agent Console v2.0 (Metrics Enabled)</div>
+            <div class="msg agent">Welcome Master! System monitoring and cloud command pipeline active.\nTry commands: 'stats', 'ping', 'help'.</div>
         </div>
 
         <footer>
@@ -104,7 +106,7 @@ def home():
                 <input type="password" id="passcode" placeholder="Enter Secret Passcode" value="{SECRET_PASSCODE}">
             </div>
             <div class="input-group">
-                <input type="text" id="commandInput" placeholder="Type command (e.g., Check Server Status)...">
+                <input type="text" id="commandInput" placeholder="Type command (e.g., stats)...">
                 <button onclick="sendCommand()">Send</button>
             </div>
         </footer>
@@ -118,7 +120,6 @@ def home():
 
                 if (!command) return;
 
-                // Render User Msg
                 const userDiv = document.createElement("div");
                 userDiv.className = "msg user";
                 userDiv.innerText = command;
@@ -172,25 +173,46 @@ def handle_command():
     if data.get("passcode") != SECRET_PASSCODE:
         return jsonify({"status": "error", "message": "Unauthorized Access"}), 403
 
-    command = data.get("command")
+    command = data.get("command", "").strip().lower()
     payload = data.get("payload", {})
 
-    if command in ["Check Server Status", "Get Engine Status", "ping", "status"]:
+    if command in ["check server status", "ping", "status"]:
         return jsonify({
             "status": "success",
-            "output": f"⚡ {AGENT_NAME} active. Core metrics functional. All services operating nominal.",
+            "output": f"⚡ {AGENT_NAME} Active!\n• Uptime: {int(time.time() - START_TIME)} seconds\n• Health: Nominal",
             "cognitive": "Server healthy and accepting payload requests."
         })
 
-    elif command == "DEPLOY_TO_CLOUD":
+    elif command in ["stats", "metrics", "sysinfo"]:
+        cpu_usage = psutil.cpu_percent(interval=None)
+        ram_usage = psutil.virtual_memory().percent
+        uptime = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - START_TIME))
+        
+        metrics_msg = (
+            f"📊 LIVE SYSTEM METRICS\n"
+            f"─────────────────────\n"
+            f"• CPU Load: {cpu_usage}%\n"
+            f"• RAM Usage: {ram_usage}%\n"
+            f"• System Uptime: {uptime}\n"
+            f"• Environment: Render Cloud Free Tier"
+        )
+        return jsonify({"status": "success", "output": metrics_msg})
+
+    elif command in ["help", "commands"]:
+        help_msg = (
+            "🛠 AVAILABLE COMMANDS:\n"
+            "• stats  - View CPU, RAM & Server Uptime\n"
+            "• status - Check Agent core health\n"
+            "• DEPLOY_TO_CLOUD - Trigger automated deployment"
+        )
+        return jsonify({"status": "success", "output": help_msg})
+
+    elif data.get("command") == "DEPLOY_TO_CLOUD":
         render_api_key = payload.get("render_api_key")
         github_repo = payload.get("github_repo", "https://github.com/Wfirstagent/god-agent-core")
 
         if not render_api_key:
-            return jsonify({
-                "status": "error",
-                "message": "Missing render_api_key in payload."
-            }), 400
+            return jsonify({"status": "error", "message": "Missing render_api_key in payload."}), 400
 
         deploy_res = deploy_to_render(render_api_key, github_repo)
 
@@ -198,17 +220,12 @@ def handle_command():
             return jsonify({
                 "status": "success",
                 "output": "Cloud deployment successfully triggered via Render API!",
-                "live_url": deploy_res.get("url"),
-                "cognitive": f"Agent auto-hosting initialized on repository {github_repo}."
+                "live_url": deploy_res.get("url")
             })
         else:
-            return jsonify({
-                "status": "error",
-                "message": "Render Deployment Failed",
-                "details": deploy_res.get("error")
-            }), 500
+            return jsonify({"status": "error", "message": "Render Deployment Failed", "details": deploy_res.get("error")}), 500
 
-    return jsonify({"status": "success", "output": f"Executed command: '{command}'. Core response processed."})
+    return jsonify({"status": "success", "output": f"Executed: '{data.get('command')}'\nType 'help' for available commands."})
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))

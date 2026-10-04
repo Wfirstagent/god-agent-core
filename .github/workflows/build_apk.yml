@@ -23,6 +23,10 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Generate Missing Android Native Files
+        run: |
+          flutter create . --platforms=android --org com.godagent
+
       - name: Build APK
         run: |
           flutter pub get

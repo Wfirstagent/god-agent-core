@@ -12,9 +12,8 @@ void main() {
 class ChatMessage {
   final String text;
   final bool isUser;
-  final Widget? customWidget;
 
-  ChatMessage({required this.text, required this.isUser, this.customWidget});
+  ChatMessage({required this.text, required this.isUser});
 }
 
 class GodConsolePage extends StatefulWidget {
@@ -27,7 +26,7 @@ class GodConsolePage extends StatefulWidget {
 class _GodConsolePageState extends State<GodConsolePage> {
   final TextEditingController _cmdController = TextEditingController();
   final TextEditingController _passController = TextEditingController(text: "admin1283");
-  final String _backendUrl = "https://your-render-app-url.onrender.com"; // Change to your Render URL
+  final String _backendUrl = "https://your-render-app-url.onrender.com";
 
   List<ChatMessage> messages = [
     ChatMessage(

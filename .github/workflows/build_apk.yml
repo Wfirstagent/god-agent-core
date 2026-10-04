@@ -23,18 +23,16 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Build APK
+      - name: Locate and Build Flutter App
         run: |
-          if [ -f "pubspec.yaml" ]; then
-            flutter pub get
-            flutter build apk --release
-          else
-            find . -name "pubspec.yaml" -execdir flutter pub get \;
-            find . -name "pubspec.yaml" -execdir flutter build apk --release \;
-          fi
+          FLUTTER_DIR=$(find . -maxdepth 2 -name "pubspec.yaml" -exec dirname {} \;)
+          echo "Found Flutter directory at: $FLUTTER_DIR"
+          cd "$FLUTTER_DIR"
+          flutter pub get
+          flutter build apk --release
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: God_Agent_Console_v2
-          path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          path: "**/*.apk"

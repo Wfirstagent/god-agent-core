@@ -85,10 +85,10 @@ class _GodConsolePageState extends State<GodConsolePage> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF111827),
         elevation: 0,
-        title: Row(
+        title: const Row(
           children: [
-            const Text("🤖 ", style: TextStyle(fontSize: 18)),
-            const Text("God_Level_AI_Agent", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 16)),
+            Text("🤖 ", style: TextStyle(fontSize: 18)),
+            Text("God_Level_AI_Agent", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 16)),
           ],
         ),
         actions: [
@@ -103,96 +103,99 @@ class _GodConsolePageState extends State<GodConsolePage> {
           )
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            color: const Color(0xFF131B2E),
-            child: const Text(
-              "⚡ God Agent Console v2.0 (Metrics Enabled)",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              color: const Color(0xFF131B2E),
+              child: const Text(
+                "⚡ God Agent Console v2.0 (Metrics Enabled)",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12),
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final msg = messages[index];
-                return Align(
-                  alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 6),
-                    padding: const EdgeInsets.all(14),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-                    decoration: BoxDecoration(
-                      color: msg.isUser ? const Color(0xFF1D4ED8) : const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(12),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  final msg = messages[index];
+                  return Align(
+                    alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(14),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+                      decoration: BoxDecoration(
+                        color: msg.isUser ? const Color(0xFF1D4ED8) : const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        msg.text,
+                        style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.4),
+                      ),
                     ),
-                    child: Text(
-                      msg.text,
-                      style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.4),
+                  );
+                },
+              ),
+            ),
+            if (_loading) const LinearProgressIndicator(color: Color(0xFF38BDF8)),
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
+              color: const Color(0xFF0F172A),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _passController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: "Passcode",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF1E293B),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          if (_loading) const LinearProgressIndicator(color: Color(0xFF38BDF8)),
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: const Color(0xFF0F172A),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _passController,
-                  obscureText: true,
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                  decoration: InputDecoration(
-                    hintText: "Passcode",
-                    hintStyle: const TextStyle(color: Colors.grey),
-                    filled: true,
-                    fillColor: const Color(0xFF1E293B),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _cmdController,
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: InputDecoration(
-                          hintText: "Type command (e.g., stats)...",
-                          hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                          filled: true,
-                          fillColor: const Color(0xFF1E293B),
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _cmdController,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: "Type command (e.g., stats)...",
+                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFF1E293B),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          ),
+                          onSubmitted: _sendCommand,
                         ),
-                        onSubmitted: _sendCommand,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF38BDF8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF38BDF8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        onPressed: () => _sendCommand(_cmdController.text),
+                        child: const Text("Send", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                       ),
-                      onPressed: () => _sendCommand(_cmdController.text),
-                      child: const Text("Send", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

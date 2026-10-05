@@ -1,232 +1,91 @@
 import os
-import sys
-import json
 import psutil
 import time
-import requests
-from flask import Flask, request, jsonify
-from config import AGENT_NAME, SECRET_PASSCODE
+from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 START_TIME = time.time()
-RENDER_BASE_URL = "https://api.render.com/v1"
+PASSCODE = "admin1283"
 
-def get_render_owner_id(headers):
-    try:
-        res = requests.get(f"{RENDER_BASE_URL}/owners", headers=headers)
-        if res.status_code == 200:
-            owners = res.json()
-            if isinstance(owners, list) and len(owners) > 0:
-                return owners[0].get("owner", {}).get("id")
-    except Exception as e:
-        print(f"Error fetching ownerId: {e}")
-    return None
-
-def deploy_to_render(api_key, github_repo):
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {api_key}"
-    }
-
-    owner_id = get_render_owner_id(headers)
-    if not owner_id:
-        return {"success": False, "error": "Failed to retrieve valid Render ownerId using provided API Key."}
-
-    repo_name = github_repo.rstrip("/").split("/")[-1].lower()
-
-    payload = {
-        "type": "web_service",
-        "name": repo_name,
-        "ownerId": owner_id,
-        "repo": github_repo,
-        "autoDeploy": "yes",
-        "serviceDetails": {
-            "env": "python",
-            "envSpecificDetails": {
-                "buildCommand": "pip install -r requirements.txt",
-                "startCommand": "python agent_core.py"
-            },
-            "region": "singapore"
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>God Agent Console</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { background-color: #0B0E14; color: #E2E8F0; font-family: sans-serif; padding: 15px; margin: 0; }
+        .card { background: #1E293B; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+        input, button { width: 100%; padding: 10px; margin-top: 8px; border-radius: 6px; border: none; box-sizing: border-box; }
+        input { background: #0F172A; color: white; }
+        button { background: #38BDF8; color: black; font-weight: bold; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h2>🤖 God_Level_AI_Agent</h2>
+    <div id="logs" class="card">Welcome Master! System monitoring active.<br>Try commands: 'stats', 'ping', 'help'.</div>
+    <div class="card">
+        <input type="password" id="pass" value="admin1283" placeholder="Passcode">
+        <input type="text" id="cmd" placeholder="Type command (e.g., stats)...">
+        <button onclick="send()">Send</button>
+    </div>
+    <script>
+        async function send() {
+            let cmd = document.getElementById('cmd').value;
+            let pass = document.getElementById('pass').value;
+            if(!cmd) return;
+            let res = await fetch('/command', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({passcode: pass, command: cmd})
+            });
+            let data = await res.json();
+            document.getElementById('logs').innerHTML += `<br><b>> ${cmd}</b><br>${data.response}`;
+            document.getElementById('cmd').value = '';
         }
-    }
+    </script>
+</body>
+</html>
+"""
 
-    try:
-        response = requests.post(f"{RENDER_BASE_URL}/services", json=payload, headers=headers)
-        if response.status_code in [200, 201]:
-            data = response.json()
-            service_url = data.get("service", {}).get("serviceDetails", {}).get("url", "Deployment Initiated")
-            return {"success": True, "url": service_url, "raw": data}
-        else:
-            return {"success": False, "error": response.text}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+def execute_command(cmd):
+    cmd = cmd.strip().lower()
+    if cmd == "stats":
+        cpu = psutil.cpu_percent(interval=0.5)
+        ram = psutil.virtual_memory().percent
+        uptime = int(time.time() - START_TIME)
+        hours, remainder = divmod(uptime, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return (f"📊 LIVE SYSTEM METRICS\n"
+                f"----------------------------------------\n"
+                f"• CPU Load: {cpu}%\n"
+                f"• RAM Usage: {ram}%\n"
+                f"• System Uptime: {hours}h {minutes}m {seconds}s\n"
+                f"• Environment: Render Cloud Free Tier")
+    elif cmd == "ping":
+        return "🏓 Pong! Agent core is live and operational."
+    elif cmd == "help":
+        return "Available Commands:\n- stats: View system performance metrics\n- ping: Test latency\n- help: List all commands"
+    else:
+        return f"Unknown command: '{cmd}'. Try 'stats', 'ping', or 'help'."
 
-@app.route('/', methods=['GET'])
-def home():
-    return f"""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>{AGENT_NAME} Core Console</title>
-        <style>
-            * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-            body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #090d16; color: #f8fafc; height: 100vh; display: flex; flex-direction: column; }}
-            header {{ background: #111827; padding: 15px 20px; border-bottom: 1px solid #1f2937; display: flex; justify-content: space-between; align-items: center; }}
-            h1 {{ font-size: 18px; color: #38bdf8; font-weight: 700; }}
-            .badge {{ background: #0284c7; color: #fff; font-size: 11px; font-weight: bold; padding: 4px 10px; border-radius: 12px; }}
-            #chat-container {{ flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 15px; }}
-            .msg {{ max-width: 85%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }}
-            .agent {{ background: #1e293b; color: #38bdf8; border: 1px solid #334155; align-self: flex-start; white-space: pre-wrap; }}
-            .user {{ background: #2563eb; color: #fff; align-self: flex-end; }}
-            .system {{ background: #0f172a; color: #94a3b8; font-size: 12px; align-self: center; border: 1px dashed #334155; text-align: center; }}
-            footer {{ background: #111827; padding: 12px; border-top: 1px solid #1f2937; display: flex; gap: 8px; flex-direction: column; }}
-            .input-group {{ display: flex; gap: 8px; }}
-            input[type="text"], input[type="password"] {{ flex: 1; background: #0f172a; border: 1px solid #334155; color: #fff; padding: 12px 14px; border-radius: 8px; font-size: 14px; outline: none; }}
-            input:focus {{ border-color: #38bdf8; }}
-            button {{ background: #38bdf8; color: #0f172a; border: none; font-weight: bold; padding: 12px 18px; border-radius: 8px; cursor: pointer; transition: 0.2s; }}
-            button:active {{ transform: scale(0.98); }}
-        </style>
-    </head>
-    <body>
-        <header>
-            <h1>🤖 {AGENT_NAME}</h1>
-            <span class="badge">ONLINE</span>
-        </header>
+@app.route('/')
+def index():
+    return render_template_string(HTML_TEMPLATE)
 
-        <div id="chat-container">
-            <div class="msg system">⚡ God Agent Console v2.0 (Metrics Enabled)</div>
-            <div class="msg agent">Welcome Master! System monitoring and cloud command pipeline active.\nTry commands: 'stats', 'ping', 'help'.</div>
-        </div>
-
-        <footer>
-            <div class="input-group">
-                <input type="password" id="passcode" placeholder="Enter Secret Passcode" value="{SECRET_PASSCODE}">
-            </div>
-            <div class="input-group">
-                <input type="text" id="commandInput" placeholder="Type command (e.g., stats)...">
-                <button onclick="sendCommand()">Send</button>
-            </div>
-        </footer>
-
-        <script>
-            async function sendCommand() {{
-                const passcode = document.getElementById("passcode").value;
-                const commandInput = document.getElementById("commandInput");
-                const command = commandInput.value.trim();
-                const container = document.getElementById("chat-container");
-
-                if (!command) return;
-
-                const userDiv = document.createElement("div");
-                userDiv.className = "msg user";
-                userDiv.innerText = command;
-                container.appendChild(userDiv);
-                commandInput.value = "";
-                container.scrollTop = container.scrollHeight;
-
-                try {{
-                    const response = await fetch("/api/command", {{
-                        method: "POST",
-                        headers: {{ "Content-Type": "application/json" }},
-                        body: JSON.stringify({{ passcode: passcode, command: command }})
-                    }});
-
-                    const data = await response.json();
-                    
-                    const agentDiv = document.createElement("div");
-                    agentDiv.className = "msg agent";
-                    
-                    if (response.ok) {{
-                        agentDiv.innerText = data.output || data.cognitive || "Command Executed Successfully";
-                    }} else {{
-                        agentDiv.style.color = "#f87171";
-                        agentDiv.innerText = "Error: " + (data.message || "Execution Failed");
-                    }}
-
-                    container.appendChild(agentDiv);
-                }} catch (e) {{
-                    const errDiv = document.createElement("div");
-                    errDiv.className = "msg agent";
-                    errDiv.style.color = "#f87171";
-                    errDiv.innerText = "Network Error: Unable to connect to core server.";
-                    container.appendChild(errDiv);
-                }}
-
-                container.scrollTop = container.scrollHeight;
-            }}
-
-            document.getElementById("commandInput").addEventListener("keypress", function(e) {{
-                if (e.key === "Enter") sendCommand();
-            }});
-        </script>
-    </body>
-    </html>
-    """
-
-@app.route('/api/command', methods=['POST'])
+# Fix for 404: Both Flutter app and Web interface route mapped to /command
+@app.route('/command', methods=['POST'])
 def handle_command():
-    data = request.get_json() or {}
+    data = request.get_json(force=True, silent=True) or {}
+    passcode = data.get('passcode', '')
+    command = data.get('command', '')
 
-    if data.get("passcode") != SECRET_PASSCODE:
-        return jsonify({"status": "error", "message": "Unauthorized Access"}), 403
+    if passcode != PASSCODE:
+        return jsonify({"response": "Unauthorized: Invalid Passcode"}), 401
 
-    command = data.get("command", "").strip().lower()
-    payload = data.get("payload", {})
-
-    if command in ["check server status", "ping", "status"]:
-        return jsonify({
-            "status": "success",
-            "output": f"⚡ {AGENT_NAME} Active!\n• Uptime: {int(time.time() - START_TIME)} seconds\n• Health: Nominal",
-            "cognitive": "Server healthy and accepting payload requests."
-        })
-
-    elif command in ["stats", "metrics", "sysinfo"]:
-        cpu_usage = psutil.cpu_percent(interval=None)
-        ram_usage = psutil.virtual_memory().percent
-        uptime = time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - START_TIME))
-        
-        metrics_msg = (
-            f"📊 LIVE SYSTEM METRICS\n"
-            f"─────────────────────\n"
-            f"• CPU Load: {cpu_usage}%\n"
-            f"• RAM Usage: {ram_usage}%\n"
-            f"• System Uptime: {uptime}\n"
-            f"• Environment: Render Cloud Free Tier"
-        )
-        return jsonify({"status": "success", "output": metrics_msg})
-
-    elif command in ["help", "commands"]:
-        help_msg = (
-            "🛠 AVAILABLE COMMANDS:\n"
-            "• stats  - View CPU, RAM & Server Uptime\n"
-            "• status - Check Agent core health\n"
-            "• DEPLOY_TO_CLOUD - Trigger automated deployment"
-        )
-        return jsonify({"status": "success", "output": help_msg})
-
-    elif data.get("command") == "DEPLOY_TO_CLOUD":
-        render_api_key = payload.get("render_api_key")
-        github_repo = payload.get("github_repo", "https://github.com/Wfirstagent/god-agent-core")
-
-        if not render_api_key:
-            return jsonify({"status": "error", "message": "Missing render_api_key in payload."}), 400
-
-        deploy_res = deploy_to_render(render_api_key, github_repo)
-
-        if deploy_res.get("success"):
-            return jsonify({
-                "status": "success",
-                "output": "Cloud deployment successfully triggered via Render API!",
-                "live_url": deploy_res.get("url")
-            })
-        else:
-            return jsonify({"status": "error", "message": "Render Deployment Failed", "details": deploy_res.get("error")}), 500
-
-    return jsonify({"status": "success", "output": f"Executed: '{data.get('command')}'\nType 'help' for available commands."})
+    response_text = execute_command(command)
+    return jsonify({"response": response_text}), 200
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)

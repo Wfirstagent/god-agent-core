@@ -26,7 +26,7 @@ class GodConsolePage extends StatefulWidget {
 class _GodConsolePageState extends State<GodConsolePage> {
   final TextEditingController _cmdController = TextEditingController();
   final TextEditingController _passController = TextEditingController(text: "admin1283");
-  final String _backendUrl = "https://god-agent-core.onrender.com";
+  final String _backendUrl = "https://your-render-app-url.onrender.com";
 
   List<ChatMessage> messages = [
     ChatMessage(
@@ -63,7 +63,7 @@ class _GodConsolePageState extends State<GodConsolePage> {
         });
       } else {
         setState(() {
-          messages.add(ChatMessage(text: "Error: ${response.statusCode}\n${response.body}", isUser: false));
+          messages.add(ChatMessage(text: "Error: ${response.statusCode}", isUser: false));
         });
       }
     } catch (e) {
@@ -127,7 +127,7 @@ class _GodConsolePageState extends State<GodConsolePage> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),
                       padding: const EdgeInsets.all(14),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
                       decoration: BoxDecoration(
                         color: msg.isUser ? const Color(0xFF1D4ED8) : const Color(0xFF1E293B),
                         borderRadius: BorderRadius.circular(12),
@@ -148,55 +148,46 @@ class _GodConsolePageState extends State<GodConsolePage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SizedBox(
-                    height: 42,
-                    child: TextField(
-                      controller: _passController,
-                      obscureText: true,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: "Enter Passcode",
-                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
-                        filled: true,
-                        fillColor: const Color(0xFF1E293B),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                      ),
+                  TextField(
+                    controller: _passController,
+                    obscureText: true,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                    decoration: InputDecoration(
+                      hintText: "Passcode",
+                      hintStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF1E293B),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: SizedBox(
-                          height: 48,
-                          child: TextField(
-                            controller: _cmdController,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                            decoration: InputDecoration(
-                              hintText: "Type command (e.g., stats)...",
-                              hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                              filled: true,
-                              fillColor: const Color(0xFF1E293B),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                            ),
-                            onSubmitted: _sendCommand,
+                        child: TextField(
+                          controller: _cmdController,
+                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                          decoration: InputDecoration(
+                            hintText: "Type command (e.g., stats)...",
+                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+                            filled: true,
+                            fillColor: const Color(0xFF1E293B),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                           ),
+                          onSubmitted: _sendCommand,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF38BDF8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                          ),
-                          onPressed: () => _sendCommand(_cmdController.text),
-                          child: const Text("Send", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF38BDF8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         ),
+                        onPressed: () => _sendCommand(_cmdController.text),
+                        child: const Text("Send", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

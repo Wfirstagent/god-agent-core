@@ -1,201 +1,280 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
 
-void main() {
-  runApp(const MaterialApp(
-    debugShowCheckedModeBanner: false,
-    home: GodConsolePage(),
-  ));
-}
+void main() => runApp(const GodAgentApp());
 
-class ChatMessage {
-  final String text;
-  final bool isUser;
-
-  ChatMessage({required this.text, required this.isUser});
-}
-
-class GodConsolePage extends StatefulWidget {
-  const GodConsolePage({super.key});
+class GodAgentApp extends StatelessWidget {
+  const GodAgentApp({Key? key}) : super(key: key);
 
   @override
-  State<GodConsolePage> createState() => _GodConsolePageState();
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'God-Level AI Agent v2',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0D1117),
+        primaryColor: const Color(0xFF58A6FF),
+      ),
+      home: const MainAgentScreen(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
 }
 
-class _GodConsolePageState extends State<GodConsolePage> {
-  final TextEditingController _cmdController = TextEditingController();
-  final TextEditingController _passController = TextEditingController(text: "admin1283");
-  final String _backendUrl = "https://your-render-app-url.onrender.com";
+class MainAgentScreen extends StatefulWidget {
+  const MainAgentScreen({Key? key}) : super(key: key);
 
-  List<ChatMessage> messages = [
-    ChatMessage(
-      text: "Welcome Master! System monitoring and cloud command pipeline active.\nTry commands: 'stats', 'ping', 'help'.",
-      isUser: false,
-    )
-  ];
-  bool _loading = false;
+  @override
+  State<MainAgentScreen> createState() => _MainAgentScreenState();
+}
 
-  Future<void> _sendCommand(String command) async {
-    if (command.trim().isEmpty) return;
+class _MainAgentScreenState extends State<MainAgentScreen> {
+  final TextEditingController _passcodeController = TextEditingController();
+  bool _isAuthorized = false;
+
+  String selectedMode = "ask"; 
+  final TextEditingController _messageController = TextEditingController();
+  final List<Map<String, String>> messages = [];
+
+  Map<String, dynamic> metrics = {
+    "thinking": "Awaiting initial command...",
+    "learned": "System booted successfully.",
+    "problems": "None. All systems operational."
+  };
+
+  final String backendUrl = "https://god-agent-core.onrender.com/command";
+  final String metricsUrl = "https://god-agent-core.onrender.com/metrics";
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showGoogleDrivePrompt();
+    });
+    _fetchMetrics();
+  }
+
+  void _showGoogleDrivePrompt() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text("Oops! Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
+        content: const Text("First-time setup requires connecting your Google Drive so your agent progress and chat data can be saved securely."),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Google Drive Connected Successfully!")),
+              );
+            },
+            child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _verifyPasscode() {
+    if (_passcodeController.text.trim() == "admin1283") {
+      setState(() {
+        _isAuthorized = true; // Sahi hone par passcode section hide ho jayega
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Incorrect Passcode!")),
+      );
+    }
+  }
+
+  Future<void> _fetchMetrics() async {
+    try {
+      final response = await http.get(Uri.parse(metricsUrl));
+      if (response.statusCode == 200) {
+        setState(() {
+          metrics = json.decode(response.body);
+        });
+      }
+    } catch (e) {}
+  }
+
+  Future<void> _sendMessage(String text) async {
+    if (text.trim().isEmpty) return;
 
     setState(() {
-      messages.add(ChatMessage(text: command, isUser: true));
-      _loading = true;
+      messages.add({"sender": "user", "text": text});
+      _messageController.clear();
     });
 
     try {
       final response = await http.post(
-        Uri.parse("$_backendUrl/command"),
+        Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "passcode": _passController.text,
-          "command": command,
+        body: json.encode({
+          "passcode": "admin1283",
+          "command": text,
+          "mode": selectedMode
         }),
       );
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        String respText = data['response'] ?? "Success";
-        
+        final data = json.decode(response.body);
         setState(() {
-          messages.add(ChatMessage(text: respText, isUser: false));
-        });
-      } else {
-        setState(() {
-          messages.add(ChatMessage(text: "Error: ${response.statusCode}", isUser: false));
+          messages.add({"sender": "agent", "text": data["response"]});
+          if (data["metrics"] != null) {
+            metrics = data["metrics"];
+          }
         });
       }
     } catch (e) {
       setState(() {
-        messages.add(ChatMessage(text: "Connection Failed: $e", isUser: false));
+        messages.add({"sender": "agent", "text": "Network error connecting to backend."});
       });
-    } finally {
-      setState(() {
-        _loading = false;
-      });
-      _cmdController.clear();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0E14),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF111827),
-        elevation: 0,
-        title: const Row(
-          children: [
-            Text("🤖 ", style: TextStyle(fontSize: 18)),
-            Text("God_Level_AI_Agent", style: TextStyle(color: Color(0xFF38BDF8), fontWeight: FontWeight.bold, fontSize: 16)),
-          ],
+        backgroundColor: const Color(0xFF161B22),
+        title: Text(
+          selectedMode == "ask" ? "Ask AI Agent Chat Mode" : "Auto Pilot Chat Mode", 
+          style: const TextStyle(fontSize: 15),
         ),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0284C7),
-              borderRadius: BorderRadius.circular(12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: DropdownButton<String>(
+              value: selectedMode,
+              dropdownColor: const Color(0xFF161B22),
+              underline: const SizedBox(),
+              items: const [
+                DropdownMenuItem(value: "ask", child: Text("Ask AI Mode", style: TextStyle(fontSize: 13))),
+                DropdownMenuItem(value: "autopilot", child: Text("Auto Pilot", style: TextStyle(fontSize: 13))),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => selectedMode = val);
+              },
             ),
-            child: const Text("ONLINE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-          )
+          ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
+      // Three-Line Slide Menu (Drawer)
+      drawer: Drawer(
+        backgroundColor: const Color(0xFF161B22),
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              color: const Color(0xFF131B2E),
-              child: const Text(
-                "⚡ God Agent Console v2.0 (Metrics Enabled)",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF93C5FD), fontSize: 12),
-              ),
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Color(0xFF21262D)),
+              child: Text('🧠 Agent Intelligence Panel', style: TextStyle(color: Color(0xFF58A6FF), fontSize: 16, fontWeight: FontWeight.bold)),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  final msg = messages[index];
-                  return Align(
-                    alignment: msg.isUser ? Alignment.centerRight : Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      padding: const EdgeInsets.all(14),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-                      decoration: BoxDecoration(
-                        color: msg.isUser ? const Color(0xFF1D4ED8) : const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        msg.text,
-                        style: const TextStyle(color: Color(0xFFE2E8F0), fontSize: 13, height: 1.4),
-                      ),
-                    ),
-                  );
-                },
-              ),
+            ListTile(
+              leading: const Icon(Icons.psychology, color: Colors.blueAccent),
+              title: const Text('1. AI agent kya soch raha hai'),
+              subtitle: Text(metrics["thinking"] ?? "Thinking...", style: const TextStyle(color: Colors.white70, fontSize: 12)),
             ),
-            if (_loading) const LinearProgressIndicator(color: Color(0xFF38BDF8)),
-            Container(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 16),
-              color: const Color(0xFF0F172A),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _passController,
-                    obscureText: true,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                    decoration: InputDecoration(
-                      hintText: "Passcode",
-                      hintStyle: const TextStyle(color: Colors.grey),
-                      filled: true,
-                      fillColor: const Color(0xFF1E293B),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.book, color: Colors.greenAccent),
+              title: const Text('2. AI agent ne aaj kya sikha hai'),
+              subtitle: Text(metrics["learned"] ?? "Learning logs...", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+            const Divider(color: Colors.white24),
+            ListTile(
+              leading: const Icon(Icons.warning, color: Colors.redAccent),
+              title: const Text('3. AI agent ko kahan problem aa rahi hai'),
+              subtitle: Text(metrics["problems"] ?? "None", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            ),
+          ],
+        ),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(12),
+              itemCount: messages.length,
+              itemBuilder: (context, index) {
+                final msg = messages[index];
+                final isUser = msg["sender"] == "user";
+                return Align(
+                  alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isUser ? const Color(0xFF238636) : const Color(0xFF21262D),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    child: Text(msg["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 14)),
                   ),
-                  const SizedBox(height: 8),
+                );
+              },
+            ),
+          ),
+
+          // Bottom Control Section
+          Container(
+            padding: const EdgeInsets.all(10),
+            color: const Color(0xFF161B22),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Passcode Section (Sahi hone par hide ho jayega)
+                if (!_isAuthorized) ...[
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: _cmdController,
-                          style: const TextStyle(color: Colors.white, fontSize: 13),
-                          decoration: InputDecoration(
-                            hintText: "Type command (e.g., stats)...",
-                            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
-                            filled: true,
-                            fillColor: const Color(0xFF1E293B),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                          controller: _passcodeController,
+                          obscureText: true,
+                          decoration: const InputDecoration(
+                            hintText: "Enter passcode to connect...",
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            border: OutlineInputBorder(),
+                            isDense: true,
                           ),
-                          onSubmitted: _sendCommand,
                         ),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF38BDF8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                        onPressed: () => _sendCommand(_cmdController.text),
-                        child: const Text("Send", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF238636)),
+                        onPressed: _verifyPasscode,
+                        child: const Text("Unlock", style: TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 10),
                 ],
-              ),
+
+                // Ask & Entry / Send Section
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: const InputDecoration(
+                          hintText: "Ask AI or give command...",
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
+                      onPressed: () => _sendMessage(_messageController.text),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

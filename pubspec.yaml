@@ -1,5 +1,5 @@
 name: god_agent_app
-description: "God Agent Console App"
+description: God-Level AI Agent App
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -10,7 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.0
-  cupertino_icons: ^1.0.6
 
 dev_dependencies:
   flutter_test:

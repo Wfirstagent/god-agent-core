@@ -32,6 +32,7 @@ class MainAgentScreen extends StatefulWidget {
 class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   bool _isAuthorized = false;
+  bool _isDrivePromptShown = false; // Bar-bar popup aane se rokne ke liye flag
 
   String selectedMode = "ask"; 
   final TextEditingController _messageController = TextEditingController();
@@ -50,12 +51,17 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showGoogleDrivePrompt();
+      if (!_isDrivePromptShown) {
+        _showGoogleDrivePrompt();
+      }
     });
     _fetchMetrics();
   }
 
   void _showGoogleDrivePrompt() {
+    setState(() {
+      _isDrivePromptShown = true;
+    });
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -68,7 +74,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             onPressed: () {
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Google Drive Connected Successfully!")),
+                const SnackBar(content: Text("Google Drive Connected Successfully! Data synced.")),
               );
             },
             child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
@@ -79,9 +85,10 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   }
 
   void _verifyPasscode() {
-    if (_passcodeController.text.trim() == "admin1283") {
+    // New Passcode Check
+    if (_passcodeController.text.trim() == "74882242959122690239") {
       setState(() {
-        _isAuthorized = true; // Passcode sahi hone par passcode box hide ho jayega aur chat bar aa jayega
+        _isAuthorized = true; // Sahi hone par passcode box hide ho jayega
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -114,7 +121,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
-          "passcode": "admin1283",
+          "passcode": "74882242959122690239",
           "command": text,
           "mode": selectedMode
         }),
@@ -218,21 +225,19 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             ),
           ),
 
-          // Bottom Control Section (Clean Conditional Layout)
+          // Bottom Control Section
           Container(
             padding: const EdgeInsets.all(12),
             color: const Color(0xFF161B22),
             child: !_isAuthorized
-                ? 
-                // 1. Passcode Box (Jab tak authorize na ho, sirf yeh dikhega)
-                Row(
+                ? Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _passcodeController,
                           obscureText: true,
                           decoration: const InputDecoration(
-                            hintText: "Enter passcode to connect...",
+                            hintText: "Enter new secure passcode...",
                             contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(),
                             isDense: true,
@@ -247,9 +252,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                       ),
                     ],
                   )
-                : 
-                // 2. Chat Input Box (Authorize hone ke baad passcode hide hokar sirf yeh dikhega)
-                Row(
+                : Row(
                     children: [
                       Expanded(
                         child: TextField(

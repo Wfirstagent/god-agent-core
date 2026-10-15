@@ -81,11 +81,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   void _verifyPasscode() {
     if (_passcodeController.text.trim() == "admin1283") {
       setState(() {
-        _isAuthorized = true; // Sahi hone par passcode section hide ho jayega
+        _isAuthorized = true; // Passcode sahi hone par passcode box hide ho jayega aur chat bar aa jayega
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Incorrect Passcode!")),
+        const SnackBar(content: Text("Incorrect Passcode! Try again.")),
       );
     }
   }
@@ -218,16 +218,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             ),
           ),
 
-          // Bottom Control Section
+          // Bottom Control Section (Clean Conditional Layout)
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             color: const Color(0xFF161B22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Passcode Section (Sahi hone par hide ho jayega)
-                if (!_isAuthorized) ...[
-                  Row(
+            child: !_isAuthorized
+                ? 
+                // 1. Passcode Box (Jab tak authorize na ho, sirf yeh dikhega)
+                Row(
                     children: [
                       Expanded(
                         child: TextField(
@@ -235,44 +233,40 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                           obscureText: true,
                           decoration: const InputDecoration(
                             hintText: "Enter passcode to connect...",
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             border: OutlineInputBorder(),
                             isDense: true,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF238636)),
                         onPressed: _verifyPasscode,
                         child: const Text("Unlock", style: TextStyle(color: Colors.white)),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 10),
-                ],
-
-                // Ask & Entry / Send Section
+                  )
+                : 
+                // 2. Chat Input Box (Authorize hone ke baad passcode hide hokar sirf yeh dikhega)
                 Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: const InputDecoration(
-                          hintText: "Ask AI or give command...",
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: "Ask AI or give command...",
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10),
+                          ),
                         ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
-                      onPressed: () => _sendMessage(_messageController.text),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                      IconButton(
+                        icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
+                        onPressed: () => _sendMessage(_messageController.text),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),

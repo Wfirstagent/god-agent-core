@@ -36,9 +36,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   
   bool _isAuthorized = false;
   bool _isDriveConnected = false;
-  String selectedMode = "ask"; // "ask" or "autopilot"
+  String selectedMode = "ask"; 
 
-  // Separate chat histories for both modes
   final List<Map<String, String>> askMessages = [];
   final List<Map<String, String>> autoPilotMessages = [];
 
@@ -58,7 +57,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     _fetchMetrics();
   }
 
-  // Load persistent login and drive status
   Future<void> _loadSavedState() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -226,7 +224,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ),
         ],
       ),
-      // 3-Line Slide Menu (Drawer) with interactive metric taps
       drawer: Drawer(
         backgroundColor: const Color(0xFF161B22),
         child: ListView(
@@ -316,8 +313,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     },
                   ),
           ),
-
-          // Modern Capsule Input Bar (Matching Reference Image Style)
           if (_isAuthorized)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

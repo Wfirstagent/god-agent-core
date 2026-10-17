@@ -59,9 +59,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   Future<void> _loadSavedState() async {
     final prefs = await SharedPreferences.getInstance();
+    final auth = prefs.getBool('is_authorized') ?? false;
+    final drive = prefs.getBool('is_drive_connected') ?? false;
     setState(() {
-      _isAuthorized = prefs.getBool('is_authorized') ?? false;
-      _isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
+      _isAuthorized = auth;
+      _isDriveConnected = drive;
     });
 
     if (_isAuthorized && !_isDriveConnected) {
@@ -96,7 +98,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   }
 
   Future<void> _verifyPasscode() async {
-    if (_passcodeController.text.trim() == "74882242959122690239") {
+    // Remove all spaces, tabs, or newlines automatically
+    String enteredText = _passcodeController.text.trim().replaceAll(RegExp(r'\s+'), '');
+    const targetPasscode = "74882242959122690239";
+
+    if (enteredText == targetPasscode) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_authorized', true);
       setState(() {
@@ -107,7 +113,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Incorrect Passcode! Try again.")),
+        SnackBar(content: Text("Incorrect Passcode! (Entered: $enteredText)")),
       );
     }
   }

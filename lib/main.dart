@@ -256,43 +256,43 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ],
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: !_isAuthorized
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.lock_outline, size: 64, color: Color(0xFF58A6FF)),
-                          const SizedBox(height: 16),
-                          const Text("Enter Secure Passcode to Access Console", style: TextStyle(fontSize: 16, color: Colors.white70), textAlign: TextAlign.center),
-                          const SizedBox(height: 20),
-                          TextField(
-                            controller: _passcodeController,
-                            obscureText: true,
-                            decoration: const InputDecoration(
-                              hintText: "Enter passcode...",
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF238636),
-                              minimumSize: const Size.fromHeight(48),
-                            ),
-                            onPressed: _verifyPasscode,
-                            child: const Text("Unlock Console", style: TextStyle(color: Colors.white, fontSize: 16)),
-                          ),
-                        ],
+      body: !_isAuthorized
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.lock_outline, size: 64, color: Color(0xFF58A6FF)),
+                    const SizedBox(height: 16),
+                    const Text("Enter Secure Passcode to Access Console", style: TextStyle(fontSize: 16, color: Colors.white70), textAlign: TextAlign.center),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: _passcodeController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        hintText: "Enter passcode...",
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
                     ),
-                  )
-                : ListView.builder(
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF238636),
+                        minimumSize: const Size.fromHeight(48),
+                      ),
+                      onPressed: _verifyPasscode,
+                      child: const Text("Unlock Console", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          : Column(
+              children: [
+                Expanded(
+                  child: ListView.builder(
                     padding: const EdgeInsets.all(12),
                     itemCount: activeMessages.length,
                     itemBuilder: (context, index) {
@@ -312,54 +312,53 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                       );
                     },
                   ),
-          ),
-          if (_isAuthorized)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: const Color(0xFF0D1117),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF161B22),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white12),
                 ),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.add, color: Color(0xFF58A6FF)),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Attachment / Quick Action menu")),
-                        );
-                      },
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  color: const Color(0xFF0D1117),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161B22),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white12),
                     ),
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        style: const TextStyle(color: Colors.white, fontSize: 14),
-                        decoration: const InputDecoration(
-                          hintText: "Ask AI or give command...",
-                          hintStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.add, color: Color(0xFF58A6FF)),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Attachment / Quick Action menu")),
+                            );
+                          },
                         ),
-                      ),
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            decoration: const InputDecoration(
+                              hintText: "Ask AI or give command...",
+                              hintStyle: TextStyle(color: Colors.white54),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.mic, color: Colors.white70),
+                          onPressed: () {},
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
+                          onPressed: () => _sendMessage(_messageController.text),
+                        ),
+                      ],
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.mic, color: Colors.white70),
-                      onPressed: () {},
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
-                      onPressed: () => _sendMessage(_messageController.text),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-        ],
-      ),
     );
   }
 }

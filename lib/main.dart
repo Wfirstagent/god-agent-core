@@ -58,66 +58,41 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   }
 
   Future<void> _loadSavedState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final auth = prefs.getBool('is_authorized') ?? false;
-    final drive = prefs.getBool('is_drive_connected') ?? false;
-    setState(() {
-      _isAuthorized = auth;
-      _isDriveConnected = drive;
-    });
-
-    if (_isAuthorized && !_isDriveConnected) {
-      _showGoogleDrivePrompt();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final auth = prefs.getBool('is_authorized') ?? false;
+      final drive = prefs.getBool('is_drive_connected') ?? false;
+      setState(() {
+        _isAuthorized = auth;
+        _isDriveConnected = drive;
+      });
+    } catch (e) {
+      // Fallback if shared preferences fails
     }
   }
 
-  Future<void> _showGoogleDrivePrompt() async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161B22),
-        title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
-        content: const Text("Connect your Google Drive to sync agent logs and session history securely."),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              final prefs = await SharedPreferences.getInstance();
-              await prefs.setBool('is_drive_connected', true);
-              setState(() => _isDriveConnected = true);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
-              );
-            },
-            child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _verifyPasscode() async {
-    // Strip all hidden unicode, zero-width spaces, tabs, and normal whitespace
-    String cleanedText = _passcodeController.text
-        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF\u202A-\u202E]'), '')
-        .replaceAll(RegExp(r'\s+'), '')
-        .trim();
+    String enteredText = _passcodeController.text.trim();
+
+    // Instant visual feedback so you know the button press was registered
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Checking... Length: ${enteredText.length}")),
+    );
 
     const targetPasscode = "74882242959122690239";
 
-    if (cleanedText == targetPasscode) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_authorized', true);
+    if (enteredText == targetPasscode) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_authorized', true);
+      } catch (e) {}
+
       setState(() {
         _isAuthorized = true;
       });
-      if (!_isDriveConnected) {
-        _showGoogleDrivePrompt();
-      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Mismatch! Read: '$cleanedText' (Len: ${cleanedText.length})")),
+        SnackBar(content: Text("Invalid Passcode! You typed: '$enteredText'")),
       );
     }
   }

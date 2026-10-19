@@ -98,11 +98,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   }
 
   Future<void> _verifyPasscode() async {
-    // Remove all spaces, tabs, or newlines automatically
-    String enteredText = _passcodeController.text.trim().replaceAll(RegExp(r'\s+'), '');
+    // Strip all hidden unicode, zero-width spaces, tabs, and normal whitespace
+    String cleanedText = _passcodeController.text
+        .replaceAll(RegExp(r'[\u200B-\u200D\uFEFF\u202A-\u202E]'), '')
+        .replaceAll(RegExp(r'\s+'), '')
+        .trim();
+
     const targetPasscode = "74882242959122690239";
 
-    if (enteredText == targetPasscode) {
+    if (cleanedText == targetPasscode) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_authorized', true);
       setState(() {
@@ -113,7 +117,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Incorrect Passcode! (Entered: $enteredText)")),
+        SnackBar(content: Text("Mismatch! Read: '$cleanedText' (Len: ${cleanedText.length})")),
       );
     }
   }

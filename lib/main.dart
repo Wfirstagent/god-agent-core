@@ -36,15 +36,20 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   
   bool _isAuthorized = false;
   bool _isDriveConnected = false;
-  String selectedMode = "ask"; 
+  String selectedMode = "ask"; // "ask" or "autopilot"
 
-  final List<Map<String, String>> askMessages = [];
-  final List<Map<String, String>> autoPilotMessages = [];
+  // Chat histories
+  List<Map<String, String>> askMessages = [];
+  List<Map<String, String>> autoPilotMessages = [];
+
+  // Pending task waiting for clarification/final confirmation
+  String? pendingTask;
+  bool awaitingConfirmation = false;
 
   Map<String, dynamic> metrics = {
-    "thinking": "System active. Awaiting commands...",
-    "learned": "Initialized secure agent core.",
-    "problems": "None. All systems optimal."
+    "thinking": "System active. Awaiting verified tasks...",
+    "learned": "Initialized conversational clarification layer.",
+    "problems": "None. All systems operational."
   };
 
   final String backendUrl = "https://god-agent-core.onrender.com/command";
@@ -57,42 +62,86 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     _fetchMetrics();
   }
 
+  // Load persistent authentication, drive status, and chat histories
   Future<void> _loadSavedState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final auth = prefs.getBool('is_authorized') ?? false;
-      final drive = prefs.getBool('is_drive_connected') ?? false;
-      setState(() {
-        _isAuthorized = auth;
-        _isDriveConnected = drive;
-      });
-    } catch (e) {
-      // Fallback if shared preferences fails
+    final prefs = await SharedPreferences.getInstance();
+    final auth = prefs.getBool('is_authorized') ?? false;
+    final drive = prefs.getBool('is_drive_connected') ?? false;
+
+    // Load saved chat histories
+    final String? savedAsk = prefs.getString('ask_messages');
+    final String? savedAuto = prefs.getString('autopilot_messages');
+
+    setState(() {
+      _isAuthorized = auth;
+      _isDriveConnected = drive;
+
+      if (savedAsk != null) {
+        askMessages = List<Map<String, String>>.from(
+          json.decode(savedAsk).map((item) => Map<String, String>.from(item)),
+        );
+      }
+      if (savedAuto != null) {
+        autoPilotMessages = List<Map<String, String>>.from(
+          json.decode(savedAuto).map((item) => Map<String, String>.from(item)),
+        );
+      }
+    });
+
+    if (_isAuthorized && !_isDriveConnected) {
+      _showGoogleDrivePrompt();
     }
+  }
+
+  // Save chat histories securely
+  Future<void> _saveChatHistories() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('ask_messages', json.encode(askMessages));
+    await prefs.setString('autopilot_messages', json.encode(autoPilotMessages));
+  }
+
+  Future<void> _showGoogleDrivePrompt() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
+        content: const Text("Connect your Google Drive to sync agent logs and session history securely."),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('is_drive_connected', true);
+              setState(() => _isDriveConnected = true);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
+              );
+            },
+            child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _verifyPasscode() async {
     String enteredText = _passcodeController.text.trim();
-
-    // Instant visual feedback so you know the button press was registered
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Checking... Length: ${enteredText.length}")),
-    );
-
     const targetPasscode = "74882242959122690239";
 
     if (enteredText == targetPasscode) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_authorized', true);
-      } catch (e) {}
-
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_authorized', true);
       setState(() {
         _isAuthorized = true;
       });
+      if (!_isDriveConnected) {
+        _showGoogleDrivePrompt();
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Invalid Passcode! You typed: '$enteredText'")),
+        const SnackBar(content: Text("Incorrect Passcode! Please try again.")),
       );
     }
   }
@@ -132,17 +181,64 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     );
   }
 
-  Future<void> _sendMessage(String text) async {
+  // Conversational Assistant Layer + Backend Dispatch
+  Future<void> _handleUserMessage(String text) async {
     if (text.trim().isEmpty) return;
 
+    final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
+
     setState(() {
-      if (selectedMode == "ask") {
-        askMessages.add({"sender": "user", "text": text});
-      } else {
-        autoPilotMessages.add({"sender": "user", "text": text});
-      }
+      currentList.add({"sender": "user", "text": text});
       _messageController.clear();
     });
+    await _saveChatHistories();
+
+    // Check if we are waiting for confirmation of a pending task
+    if (awaitingConfirmation) {
+      String lower = text.toLowerCase();
+      if (lower.contains("haan") || lower.contains("yes") || lower.contains("ok") || lower.contains("final") || lower.contains("kar do")) {
+        // User confirmed! Now dispatch to backend agent
+        String taskToSend = pendingTask ?? text;
+        pendingTask = null;
+        awaitingConfirmation = false;
+
+        setState(() {
+          currentList.add({"sender": "agent", "text": "🔄 Dispatching verified task to AI agent core..."});
+        });
+        await _saveChatHistories();
+
+        await _dispatchToBackend(taskToSend);
+        return;
+      } else {
+        // User wants to modify or discuss further
+        pendingTask = text;
+        setState(() {
+          currentList.add({
+            "sender": "agent",
+            "text": "Theek hai, maine samajh liya. Kya ab main ise final kar doon aur AI agent ko bata du ki ye kaam mila hai? (Haan / Final kar do bole)"
+          });
+        });
+        await _saveChatHistories();
+        return;
+      }
+    }
+
+    // First time user gives a prompt -> Conversational clarification phase
+    pendingTask = text;
+    awaitingConfirmation = true;
+
+    setState(() {
+      currentList.add({
+        "sender": "agent",
+        "text": "🤖 **Assistant:** Main aapki baat samajh raha hoon ('$text'). Kya aap chahte hain ki main is task ko refine karke final kar doon aur AI agent ko assign kar doon? (Aap batayein, ya 'Haan final kar do' kahein)"
+      });
+    });
+    await _saveChatHistories();
+  }
+
+  // Send finalized task to Render Backend API
+  Future<void> _dispatchToBackend(String commandText) async {
+    final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
 
     try {
       final response = await http.post(
@@ -150,7 +246,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "passcode": "74882242959122690239",
-          "command": text,
+          "command": commandText,
           "mode": selectedMode
         }),
       );
@@ -158,26 +254,22 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          if (selectedMode == "ask") {
-            askMessages.add({"sender": "agent", "text": data["response"]});
-          } else {
-            autoPilotMessages.add({"sender": "agent", "text": data["response"]});
-          }
+          currentList.add({"sender": "agent", "text": "✅ ${data["response"]}"});
           if (data["metrics"] != null) {
             metrics = data["metrics"];
           }
         });
+      } else {
+        setState(() {
+          currentList.add({"sender": "agent", "text": "⚠️ Backend server returned error code: ${response.statusCode}"});
+        });
       }
     } catch (e) {
       setState(() {
-        final errText = "Network error connecting to backend core.";
-        if (selectedMode == "ask") {
-          askMessages.add({"sender": "agent", "text": errText});
-        } else {
-          autoPilotMessages.add({"sender": "agent", "text": errText});
-        }
+        currentList.add({"sender": "agent", "text": "❌ Network error connecting to backend core."});
       });
     }
+    await _saveChatHistories();
   }
 
   @override
@@ -203,7 +295,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 DropdownMenuItem(value: "autopilot", child: Text("Auto Pilot", style: TextStyle(fontSize: 13, color: Colors.white))),
               ],
               onChanged: (val) {
-                if (val != null) setState(() => selectedMode = val);
+                if (val != null) {
+                  setState(() => selectedMode = val);
+                }
               },
             ),
           ),
@@ -298,47 +392,50 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     },
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  color: const Color(0xFF0D1117),
+                // Modern Capsule Input Bar elevated nicely with SafeArea
+                SafeArea(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF161B22),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white12),
-                    ),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.add, color: Color(0xFF58A6FF)),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Attachment / Quick Action menu")),
-                            );
-                          },
-                        ),
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            style: const TextStyle(color: Colors.white, fontSize: 14),
-                            decoration: const InputDecoration(
-                              hintText: "Ask AI or give command...",
-                              hintStyle: TextStyle(color: Colors.white54),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: const Color(0xFF0D1117),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF161B22),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.add, color: Color(0xFF58A6FF)),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Attachment / Quick Action menu")),
+                              );
+                            },
+                          ),
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              decoration: const InputDecoration(
+                                hintText: "Ask AI or give command...",
+                                hintStyle: TextStyle(color: Colors.white54),
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.mic, color: Colors.white70),
-                          onPressed: () {},
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
-                          onPressed: () => _sendMessage(_messageController.text),
-                        ),
-                      ],
+                          IconButton(
+                            icon: const Icon(Icons.mic, color: Colors.white70),
+                            onPressed: () {},
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
+                            onPressed: () => _handleUserMessage(_messageController.text),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

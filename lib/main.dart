@@ -3,10 +3,44 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-void main() => runApp(const GodAgentApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final bool isAuthorized = prefs.getBool('is_authorized') ?? false;
+  final bool isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
+
+  String? savedAsk = prefs.getString('ask_messages');
+  String? savedAuto = prefs.getString('autopilot_messages');
+
+  List<Map<String, String>> initialAsk = savedAsk != null
+      ? List<Map<String, String>>.from(json.decode(savedAsk).map((item) => Map<String, String>.from(item)))
+      : [];
+
+  List<Map<String, String>> initialAuto = savedAuto != null
+      ? List<Map<String, String>>.from(json.decode(savedAuto).map((item) => Map<String, String>.from(item)))
+      : [];
+
+  runApp(GodAgentApp(
+    isAuthorized: isAuthorized,
+    isDriveConnected: isDriveConnected,
+    initialAsk: initialAsk,
+    initialAuto: initialAuto,
+  ));
+}
 
 class GodAgentApp extends StatelessWidget {
-  const GodAgentApp({Key? key}) : super(key: key);
+  final bool isAuthorized;
+  final bool isDriveConnected;
+  final List<Map<String, String>> initialAsk;
+  final List<Map<String, String>> initialAuto;
+
+  const GodAgentApp({
+    Key? key,
+    required this.isAuthorized,
+    required this.isDriveConnected,
+    required this.initialAsk,
+    required this.initialAuto,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -17,14 +51,30 @@ class GodAgentApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0D1117),
         primaryColor: const Color(0xFF58A6FF),
       ),
-      home: const MainAgentScreen(),
+      home: MainAgentScreen(
+        initialAuthorized: isAuthorized,
+        initialDriveConnected: isDriveConnected,
+        initialAsk: initialAsk,
+        initialAuto: initialAuto,
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class MainAgentScreen extends StatefulWidget {
-  const MainAgentScreen({Key? key}) : super(key: key);
+  final bool initialAuthorized;
+  final bool initialDriveConnected;
+  final List<Map<String, String>> initialAsk;
+  final List<Map<String, String>> initialAuto;
+
+  const MainAgentScreen({
+    Key? key,
+    required this.initialAuthorized,
+    required this.initialDriveConnected,
+    required this.initialAsk,
+    required this.initialAuto,
+  }) : super(key: key);
 
   @override
   State<MainAgentScreen> createState() => _MainAgentScreenState();
@@ -34,21 +84,16 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
   
-  bool _isAuthorized = false;
-  bool _isDriveConnected = false;
+  late bool _isAuthorized;
+  late bool _isDriveConnected;
   String selectedMode = "ask"; // "ask" or "autopilot"
 
-  // Chat histories
-  List<Map<String, String>> askMessages = [];
-  List<Map<String, String>> autoPilotMessages = [];
-
-  // Pending task waiting for clarification/final confirmation
-  String? pendingTask;
-  bool awaitingConfirmation = false;
+  late List<Map<String, String>> askMessages;
+  late List<Map<String, String>> autoPilotMessages;
 
   Map<String, dynamic> metrics = {
-    "thinking": "System active. Awaiting verified tasks...",
-    "learned": "Initialized robust conversational clarification layer.",
+    "thinking": "System active. Awaiting commands...",
+    "learned": "Core initialized successfully.",
     "problems": "None. All systems operational."
   };
 
@@ -58,60 +103,33 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedState();
+    _isAuthorized = widget.initialAuthorized;
+    _isDriveConnected = widget.initialDriveConnected;
+    askMessages = widget.initialAsk;
+    autoPilotMessages = widget.initialAuto;
+
     _fetchMetrics();
-  }
 
-  // Load persistent authentication, drive status, and chat histories safely
-  Future<void> _loadSavedState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final auth = prefs.getBool('is_authorized') ?? false;
-      final drive = prefs.getBool('is_drive_connected') ?? false;
-
-      final String? savedAsk = prefs.getString('ask_messages');
-      final String? savedAuto = prefs.getString('autopilot_messages');
-
-      setState(() {
-        _isAuthorized = auth;
-        _isDriveConnected = drive;
-
-        if (savedAsk != null) {
-          askMessages = List<Map<String, String>>.from(
-            json.decode(savedAsk).map((item) => Map<String, String>.from(item)),
-          );
-        }
-        if (savedAuto != null) {
-          autoPilotMessages = List<Map<String, String>>.from(
-            json.decode(savedAuto).map((item) => Map<String, String>.from(item)),
-          );
-        }
-      });
-
-      if (_isAuthorized && !_isDriveConnected) {
+    if (_isAuthorized && !_isDriveConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         _showGoogleDrivePrompt();
-      }
-    } catch (e) {
-      debugPrint("Error loading saved state: $e");
+      });
     }
   }
 
-  // Save chat histories securely with error handling
   Future<void> _saveChatHistories() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('ask_messages', json.encode(askMessages));
       await prefs.setString('autopilot_messages', json.encode(autoPilotMessages));
-    } catch (e) {
-      debugPrint("Error saving chat histories: $e");
-    }
+    } catch (e) {}
   }
 
-  Future<void> _showGoogleDrivePrompt() async {
+  void _showGoogleDrivePrompt() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
         content: const Text("Connect your Google Drive to sync agent logs and session history securely."),
@@ -121,14 +139,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
               try {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.setBool('is_drive_connected', true);
-                setState(() => _isDriveConnected = true);
-                Navigator.pop(context);
+                setState(() {
+                  _isDriveConnected = true;
+                });
+                Navigator.of(dialogContext).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
                 );
-              } catch (e) {
-                debugPrint("Error connecting drive: $e");
-              }
+              } catch (e) {}
             },
             child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
           ),
@@ -145,9 +163,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       try {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_authorized', true);
-      } catch (e) {
-        debugPrint("Error saving auth state: $e");
-      }
+      } catch (e) {}
 
       setState(() {
         _isAuthorized = true;
@@ -171,9 +187,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           metrics = json.decode(response.body);
         });
       }
-    } catch (e) {
-      debugPrint("Error fetching metrics: $e");
-    }
+    } catch (e) {}
   }
 
   void _showMetricDetailDialog(String title, String content, IconData icon, Color color) {
@@ -200,8 +214,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     );
   }
 
-  // Conversational Assistant Layer + Backend Dispatch
-  Future<void> _handleUserMessage(String text) async {
+  // Direct, clean communication with backend agent (no annoying loops)
+  Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
     final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
@@ -212,55 +226,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
     await _saveChatHistories();
 
-    if (awaitingConfirmation) {
-      String lower = text.toLowerCase();
-      if (lower.contains("haan") || lower.contains("yes") || lower.contains("ok") || lower.contains("final") || lower.contains("kar do")) {
-        String taskToSend = pendingTask ?? text;
-        pendingTask = null;
-        awaitingConfirmation = false;
-
-        setState(() {
-          currentList.add({"sender": "agent", "text": "🔄 Dispatching verified task to AI agent core..."});
-        });
-        await _saveChatHistories();
-
-        await _dispatchToBackend(taskToSend);
-        return;
-      } else {
-        pendingTask = text;
-        setState(() {
-          currentList.add({
-            "sender": "agent",
-            "text": "Theek hai, samajh gaya. Kya ab main ise final kar doon aur AI agent ko bata du ki ye kaam mila hai? (Haan / Final kar do bole)"
-          });
-        });
-        await _saveChatHistories();
-        return;
-      }
-    }
-
-    pendingTask = text;
-    awaitingConfirmation = true;
-
-    setState(() {
-      currentList.add({
-        "sender": "agent",
-        "text": "🤖 **Assistant:** Main aapki baat samajh raha hoon ('$text'). Kya aap chahte hain ki main is task ko refine karke final kar doon aur AI agent ko assign kar doon? (Aap batayein, ya 'Haan final kar do' kahein)"
-      });
-    });
-    await _saveChatHistories();
-  }
-
-  Future<void> _dispatchToBackend(String commandText) async {
-    final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
-
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "passcode": "74882242959122690239",
-          "command": commandText,
+          "command": text,
           "mode": selectedMode
         }),
       );
@@ -268,14 +240,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          currentList.add({"sender": "agent", "text": "✅ ${data["response"]}"});
+          currentList.add({"sender": "agent", "text": data["response"] ?? "Task processed."});
           if (data["metrics"] != null) {
             metrics = data["metrics"];
           }
         });
       } else {
         setState(() {
-          currentList.add({"sender": "agent", "text": "⚠️ Backend server returned error code: ${response.statusCode}"});
+          currentList.add({"sender": "agent", "text": "⚠️ Server returned error: ${response.statusCode}"});
         });
       }
     } catch (e) {
@@ -406,7 +378,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     },
                   ),
                 ),
-                // Properly padded capsule input bar elevated above system bar using SafeArea
+                // Modern Capsule Input Bar elevated with SafeArea
                 SafeArea(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -446,7 +418,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                           ),
                           IconButton(
                             icon: const Icon(Icons.send, color: Color(0xFF58A6FF)),
-                            onPressed: () => _handleUserMessage(_messageController.text),
+                            onPressed: () => _sendMessage(_messageController.text),
                           ),
                         ],
                       ),

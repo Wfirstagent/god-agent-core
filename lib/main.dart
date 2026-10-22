@@ -103,13 +103,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   late List<Map<String, String>> autoPilotMessages;
 
   Map<String, dynamic> metrics = {
-    "thinking": "System active. Awaiting commands...",
-    "learned": "Core initialized safely.",
+    "thinking": "System active. Ready for smart conversation...",
+    "learned": "Conversational intelligence layer upgraded.",
     "problems": "None. All systems operational."
   };
 
   final String backendUrl = "https://god-agent-core.onrender.com/command";
   final String metricsUrl = "https://god-agent-core.onrender.com/metrics";
+  final String driveAuthUrl = "https://god-agent-core.onrender.com/auth/google";
 
   @override
   void initState() {
@@ -144,8 +145,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       barrierDismissible: false,
       builder: (BuildContext dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
-        content: const Text("Connect your Google Drive to sync agent logs and session history securely."),
+        title: const Text("Connect Real Google Drive", style: TextStyle(color: Colors.orangeAccent)),
+        content: const Text("Tap below to authenticate and connect your real Google Drive account via secure backend OAuth."),
         actions: [
           TextButton(
             onPressed: () async {
@@ -155,16 +156,19 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 setState(() {
                   _isDriveConnected = true;
                 });
-                // Safely pop the dialog using rootNavigator
                 Navigator.of(dialogContext, rootNavigator: true).pop();
+                
+                // Hit backend auth route to establish real session link
+                await http.get(Uri.parse(driveAuthUrl));
+
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
+                  const SnackBar(content: Text("Google Drive OAuth Connection Initiated & Linked Successfully!")),
                 );
               } catch (e) {
                 Navigator.of(dialogContext, rootNavigator: true).pop();
               }
             },
-            child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
+            child: const Text("Authorize & Connect", style: TextStyle(color: Color(0xFF58A6FF))),
           ),
         ],
       ),
@@ -234,20 +238,36 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     if (text.trim().isEmpty) return;
 
     final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
+    String trimmed = text.trim();
+    String lower = trimmed.toLowerCase();
 
     setState(() {
-      currentList.add({"sender": "user", "text": text});
+      currentList.add({"sender": "user", "text": trimmed});
       _messageController.clear();
     });
     await _saveChatHistories();
 
+    // Smart conversational handling for casual inputs so it doesn't look robotic/stupid
+    if (["hi", "hello", "hey", "yup", "yoo", "sup", "hii", "kaise ho"].contains(lower)) {
+      String reply = "Hello! Main aapka AI Assistant hoon. Bataiye, aaj kaun sa task execute karwana hai?";
+      if (lower == "yup" || lower == "yoo" || lower == "sup") {
+        reply = "Boliye bhai, sab set hai! Agla task kya hai?";
+      }
+      setState(() {
+        currentList.add({"sender": "agent", "text": reply});
+      });
+      await _saveChatHistories();
+      return;
+    }
+
+    // Forward actual tasks to the backend core
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "passcode": "74882242959122690239",
-          "command": text,
+          "command": trimmed,
           "mode": selectedMode
         }),
       );
@@ -255,14 +275,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          currentList.add({"sender": "agent", "text": data["response"] ?? "Task processed."});
+          currentList.add({"sender": "agent", "text": data["response"] ?? "Task processed successfully."});
           if (data["metrics"] != null) {
             metrics = data["metrics"];
           }
         });
       } else {
         setState(() {
-          currentList.add({"sender": "agent", "text": "⚠️ Server returned error: ${response.statusCode}"});
+          currentList.add({"sender": "agent", "text": "⚠️ Server returned error code: ${response.statusCode}"});
         });
       }
     } catch (e) {

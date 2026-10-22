@@ -5,20 +5,37 @@ import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
-  final bool isAuthorized = prefs.getBool('is_authorized') ?? false;
-  final bool isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
+  
+  bool isAuthorized = false;
+  bool isDriveConnected = false;
+  List<Map<String, String>> initialAsk = [];
+  List<Map<String, String>> initialAuto = [];
 
-  String? savedAsk = prefs.getString('ask_messages');
-  String? savedAuto = prefs.getString('autopilot_messages');
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    isAuthorized = prefs.getBool('is_authorized') ?? false;
+    isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
 
-  List<Map<String, String>> initialAsk = savedAsk != null
-      ? List<Map<String, String>>.from(json.decode(savedAsk).map((item) => Map<String, String>.from(item)))
-      : [];
+    String? savedAsk = prefs.getString('ask_messages');
+    if (savedAsk != null && savedAsk.isNotEmpty) {
+      try {
+        initialAsk = List<Map<String, String>>.from(
+          json.decode(savedAsk).map((item) => Map<String, String>.from(item)),
+        );
+      } catch (_) {}
+    }
 
-  List<Map<String, String>> initialAuto = savedAuto != null
-      ? List<Map<String, String>>.from(json.decode(savedAuto).map((item) => Map<String, String>.from(item)))
-      : [];
+    String? savedAuto = prefs.getString('autopilot_messages');
+    if (savedAuto != null && savedAuto.isNotEmpty) {
+      try {
+        initialAuto = List<Map<String, String>>.from(
+          json.decode(savedAuto).map((item) => Map<String, String>.from(item)),
+        );
+      } catch (_) {}
+    }
+  } catch (e) {
+    // Fallback defaults to ensure app never crashes on startup
+  }
 
   runApp(GodAgentApp(
     isAuthorized: isAuthorized,
@@ -86,14 +103,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   
   late bool _isAuthorized;
   late bool _isDriveConnected;
-  String selectedMode = "ask"; // "ask" or "autopilot"
+  String selectedMode = "ask"; 
 
   late List<Map<String, String>> askMessages;
   late List<Map<String, String>> autoPilotMessages;
 
   Map<String, dynamic> metrics = {
     "thinking": "System active. Awaiting commands...",
-    "learned": "Core initialized successfully.",
+    "learned": "Core initialized safely.",
     "problems": "None. All systems operational."
   };
 
@@ -214,7 +231,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     );
   }
 
-  // Direct, clean communication with backend agent (no annoying loops)
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -378,7 +394,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     },
                   ),
                 ),
-                // Modern Capsule Input Bar elevated with SafeArea
                 SafeArea(
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

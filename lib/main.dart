@@ -33,9 +33,7 @@ void main() async {
         );
       } catch (_) {}
     }
-  } catch (e) {
-    // Fallback defaults to ensure app never crashes on startup
-  }
+  } catch (e) {}
 
   runApp(GodAgentApp(
     isAuthorized: isAuthorized,
@@ -110,7 +108,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   Map<String, dynamic> metrics = {
     "thinking": "System active. Awaiting commands...",
-    "learned": "Core initialized safely.",
+    "learned": "Core initialized successfully.",
     "problems": "None. All systems operational."
   };
 

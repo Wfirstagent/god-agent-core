@@ -18,22 +18,18 @@ void main() async {
 
     String? savedAsk = prefs.getString('ask_messages');
     if (savedAsk != null && savedAsk.isNotEmpty) {
-      try {
-        initialAsk = List<Map<String, String>>.from(
-          json.decode(savedAsk).map((item) => Map<String, String>.from(item)),
-        );
-      } catch (_) {}
+      List decoded = json.decode(savedAsk);
+      initialAsk = decoded.map((item) => Map<String, String>.from(item)).toList();
     }
 
     String? savedAuto = prefs.getString('autopilot_messages');
     if (savedAuto != null && savedAuto.isNotEmpty) {
-      try {
-        initialAuto = List<Map<String, String>>.from(
-          json.decode(savedAuto).map((item) => Map<String, String>.from(item)),
-        );
-      } catch (_) {}
+      List decoded = json.decode(savedAuto);
+      initialAuto = decoded.map((item) => Map<String, String>.from(item)).toList();
     }
-  } catch (e) {}
+  } catch (e) {
+    debugPrint("Init load error: $e");
+  }
 
   runApp(GodAgentApp(
     isAuthorized: isAuthorized,
@@ -108,7 +104,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   Map<String, dynamic> metrics = {
     "thinking": "System active. Awaiting commands...",
-    "learned": "Core initialized successfully.",
+    "learned": "Core initialized safely.",
     "problems": "None. All systems operational."
   };
 
@@ -120,8 +116,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     super.initState();
     _isAuthorized = widget.initialAuthorized;
     _isDriveConnected = widget.initialDriveConnected;
-    askMessages = widget.initialAsk;
-    autoPilotMessages = widget.initialAuto;
+    askMessages = List.from(widget.initialAsk);
+    autoPilotMessages = List.from(widget.initialAuto);
 
     _fetchMetrics();
 
@@ -137,14 +133,16 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('ask_messages', json.encode(askMessages));
       await prefs.setString('autopilot_messages', json.encode(autoPilotMessages));
-    } catch (e) {}
+    } catch (e) {
+      debugPrint("Save chat error: $e");
+    }
   }
 
   void _showGoogleDrivePrompt() {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
         content: const Text("Connect your Google Drive to sync agent logs and session history securely."),
@@ -157,11 +155,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 setState(() {
                   _isDriveConnected = true;
                 });
-                Navigator.of(dialogContext).pop();
+                // Safely pop the dialog using rootNavigator
+                Navigator.of(dialogContext, rootNavigator: true).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
                 );
-              } catch (e) {}
+              } catch (e) {
+                Navigator.of(dialogContext, rootNavigator: true).pop();
+              }
             },
             child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
           ),

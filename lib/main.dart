@@ -102,9 +102,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   late List<Map<String, String>> askMessages;
   late List<Map<String, String>> autoPilotMessages;
 
+  // Task clarification state
+  String? pendingTask;
+  bool awaitingFinalConfirmation = false;
+
   Map<String, dynamic> metrics = {
-    "thinking": "System active. Ready for smart conversation...",
-    "learned": "Conversational intelligence layer upgraded.",
+    "thinking": "System active. Ready for interactive clarification...",
+    "learned": "Interactive refinement layer active.",
     "problems": "None. All systems operational."
   };
 
@@ -158,7 +162,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 });
                 Navigator.of(dialogContext, rootNavigator: true).pop();
                 
-                // Hit backend auth route to establish real session link
                 await http.get(Uri.parse(driveAuthUrl));
 
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -247,27 +250,66 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
     await _saveChatHistories();
 
-    // Smart conversational handling for casual inputs so it doesn't look robotic/stupid
-    if (["hi", "hello", "hey", "yup", "yoo", "sup", "hii", "kaise ho"].contains(lower)) {
-      String reply = "Hello! Main aapka AI Assistant hoon. Bataiye, aaj kaun sa task execute karwana hai?";
-      if (lower == "yup" || lower == "yoo" || lower == "sup") {
-        reply = "Boliye bhai, sab set hai! Agla task kya hai?";
-      }
+    // Casual chat check
+    if (["hi", "hello", "hey", "sup", "hii", "kaise ho"].contains(lower)) {
       setState(() {
-        currentList.add({"sender": "agent", "text": reply});
+        currentList.add({"sender": "agent", "text": "Hello! Main aapka AI Assistant hoon. Bataiye, aaj kaun sa naya task karna hai?"});
       });
       await _saveChatHistories();
       return;
     }
 
-    // Forward actual tasks to the backend core
+    // If waiting for final confirmation after understanding the task
+    if (awaitingFinalConfirmation) {
+      if (lower.contains("haan") || lower.contains("yes") || lower.contains("ok") || lower.contains("final") || lower.contains("kar do")) {
+        String taskToSend = pendingTask ?? trimmed;
+        pendingTask = null;
+        awaitingFinalConfirmation = false;
+
+        setState(() {
+          currentList.add({"sender": "agent", "text": "🔄 Sab kuch clear hai! Ab task backend agent ko dispatch kiya ja raha hai..."});
+        });
+        await _saveChatHistories();
+
+        await _dispatchToBackend(taskToSend);
+        return;
+      } else {
+        // User wants to add more details or modify
+        pendingTask = "$pendingTask | Additional context: $trimmed";
+        setState(() {
+          currentList.add({
+            "sender": "agent",
+            "text": "Theek hai, maine ye details bhi jod li hain. Kya ab sab kuch clear hai aur main ise final kar doon? (Haan / Final kar do kahein)"
+          });
+        });
+        await _saveChatHistories();
+        return;
+      }
+    }
+
+    // First time receiving a task: analyze and ask clarifying questions before finalizing
+    pendingTask = trimmed;
+    awaitingFinalConfirmation = true;
+
+    setState(() {
+      currentList.add({
+        "sender": "agent",
+        "text": "🤖 **Clarification Check:** Main aapka task samajh raha hoon ('$trimmed'). Kya isme koi aur specific requirement ya detail add karni hai, ya sab kuch clear hai? Jab aap bolo ki sab clear hai, tab main ise final kar dunga!"
+      });
+    });
+    await _saveChatHistories();
+  }
+
+  Future<void> _dispatchToBackend(String commandText) async {
+    final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
+
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "passcode": "74882242959122690239",
-          "command": trimmed,
+          "command": commandText,
           "mode": selectedMode
         }),
       );
@@ -275,7 +317,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          currentList.add({"sender": "agent", "text": data["response"] ?? "Task processed successfully."});
+          currentList.add({"sender": "agent", "text": "✅ ${data["response"] ?? "Task executed successfully."}"});
           if (data["metrics"] != null) {
             metrics = data["metrics"];
           }

@@ -573,8 +573,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                                 hintStyle: TextStyle(color: Colors.white54),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              )
-),
+                              ),
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.mic, color: Colors.white70),

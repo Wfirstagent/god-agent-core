@@ -1,16 +1,17 @@
-name: god_agent_app
-description: A new Flutter project.
+name: god_agent
+description: God-Level AI Agent v2 Mobile Client
 publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=2.18.0 <4.0.0'
+  sdk: '>=2.17.0 <3.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.1.0
-  shared_preferences: ^2.2.2
+  http: ^0.13.5
+  shared_preferences: ^2.0.15
+  url_launcher: ^6.1.10
 
 dev_dependencies:
   flutter_test:

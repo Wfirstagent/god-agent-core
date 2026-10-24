@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 void main() async {
@@ -102,13 +103,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   late List<Map<String, String>> askMessages;
   late List<Map<String, String>> autoPilotMessages;
 
-  // Task clarification state
-  String? pendingTask;
-  bool awaitingFinalConfirmation = false;
-
   Map<String, dynamic> metrics = {
-    "thinking": "System active. Ready for interactive clarification...",
-    "learned": "Interactive refinement layer active.",
+    "thinking": "System active. Connected to direct AI core...",
+    "learned": "Removed rigid loops. Natural conversational flow active.",
     "problems": "None. All systems operational."
   };
 
@@ -150,7 +147,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       builder: (BuildContext dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
         title: const Text("Connect Real Google Drive", style: TextStyle(color: Colors.orangeAccent)),
-        content: const Text("Tap below to authenticate and connect your real Google Drive account via secure backend OAuth."),
+        content: const Text("Tap below to open your browser and authenticate your real Google Drive account securely via OAuth."),
         actions: [
           TextButton(
             onPressed: () async {
@@ -162,10 +159,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 });
                 Navigator.of(dialogContext, rootNavigator: true).pop();
                 
-                await http.get(Uri.parse(driveAuthUrl));
+                final Uri uri = Uri.parse(driveAuthUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                } else {
+                  await launchUrl(uri, mode: LaunchMode.platformDefault);
+                }
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Google Drive OAuth Connection Initiated & Linked Successfully!")),
+                  const SnackBar(content: Text("Redirecting to Google Drive OAuth Authentication...")),
                 );
               } catch (e) {
                 Navigator.of(dialogContext, rootNavigator: true).pop();
@@ -237,12 +239,12 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     );
   }
 
+  // Direct, natural communication with backend AI core without any rigid loops
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
     final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
     String trimmed = text.trim();
-    String lower = trimmed.toLowerCase();
 
     setState(() {
       currentList.add({"sender": "user", "text": trimmed});
@@ -250,66 +252,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
     await _saveChatHistories();
 
-    // Casual chat check
-    if (["hi", "hello", "hey", "sup", "hii", "kaise ho"].contains(lower)) {
-      setState(() {
-        currentList.add({"sender": "agent", "text": "Hello! Main aapka AI Assistant hoon. Bataiye, aaj kaun sa naya task karna hai?"});
-      });
-      await _saveChatHistories();
-      return;
-    }
-
-    // If waiting for final confirmation after understanding the task
-    if (awaitingFinalConfirmation) {
-      if (lower.contains("haan") || lower.contains("yes") || lower.contains("ok") || lower.contains("final") || lower.contains("kar do")) {
-        String taskToSend = pendingTask ?? trimmed;
-        pendingTask = null;
-        awaitingFinalConfirmation = false;
-
-        setState(() {
-          currentList.add({"sender": "agent", "text": "🔄 Sab kuch clear hai! Ab task backend agent ko dispatch kiya ja raha hai..."});
-        });
-        await _saveChatHistories();
-
-        await _dispatchToBackend(taskToSend);
-        return;
-      } else {
-        // User wants to add more details or modify
-        pendingTask = "$pendingTask | Additional context: $trimmed";
-        setState(() {
-          currentList.add({
-            "sender": "agent",
-            "text": "Theek hai, maine ye details bhi jod li hain. Kya ab sab kuch clear hai aur main ise final kar doon? (Haan / Final kar do kahein)"
-          });
-        });
-        await _saveChatHistories();
-        return;
-      }
-    }
-
-    // First time receiving a task: analyze and ask clarifying questions before finalizing
-    pendingTask = trimmed;
-    awaitingFinalConfirmation = true;
-
-    setState(() {
-      currentList.add({
-        "sender": "agent",
-        "text": "🤖 **Clarification Check:** Main aapka task samajh raha hoon ('$trimmed'). Kya isme koi aur specific requirement ya detail add karni hai, ya sab kuch clear hai? Jab aap bolo ki sab clear hai, tab main ise final kar dunga!"
-      });
-    });
-    await _saveChatHistories();
-  }
-
-  Future<void> _dispatchToBackend(String commandText) async {
-    final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
-
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
         headers: {"Content-Type": "application/json"},
         body: json.encode({
           "passcode": "74882242959122690239",
-          "command": commandText,
+          "command": trimmed,
           "mode": selectedMode
         }),
       );
@@ -317,7 +266,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
-          currentList.add({"sender": "agent", "text": "✅ ${data["response"] ?? "Task executed successfully."}"});
+          currentList.add({"sender": "agent", "text": data["response"] ?? "Response received from core."});
           if (data["metrics"] != null) {
             metrics = data["metrics"];
           }

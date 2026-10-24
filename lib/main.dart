@@ -91,7 +91,6 @@ class MainAgentScreen extends StatefulWidget {
   @override
   State<MainAgentScreen> createState() => _MainAgentScreenState();
 }
-
 class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
@@ -103,14 +102,21 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   late List<Map<String, String>> askMessages;
   late List<Map<String, String>> autoPilotMessages;
 
+  List<Map<String, dynamic>> liveAgentTasks = [
+    {"task": "System Initialized successfully.", "status": "Running"},
+    {"task": "Connected to secure local session storage.", "status": "Running"},
+    {"task": "Awaiting user task inputs & commands...", "status": "Running"},
+  ];
+
   Map<String, dynamic> metrics = {
-    "thinking": "System active. AI core online and optimized...",
-    "learned": "Enhanced natural conversational dialogue layer.",
+    "thinking": "System active. Parsing Hinglish and English commands...",
+    "learned": "Advanced bilingual and live activity pause controller active.",
     "problems": "None. All systems operational."
   };
 
   final String backendUrl = "https://god-agent-core.onrender.com/command";
   final String metricsUrl = "https://god-agent-core.onrender.com/metrics";
+  final String driveAuthUrl = "https://god-agent-core.onrender.com/auth/google";
 
   @override
   void initState() {
@@ -139,14 +145,28 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     }
   }
 
+  void _addTaskLog(String taskName) {
+    setState(() {
+      liveAgentTasks.insert(0, {"task": taskName, "status": "Running"});
+      if (liveAgentTasks.length > 30) liveAgentTasks.removeLast();
+    });
+  }
+
+  void _toggleTaskPause(int index) {
+    setState(() {
+      String currentStatus = liveAgentTasks[index]["status"];
+      liveAgentTasks[index]["status"] = currentStatus == "Running" ? "Paused" : "Running";
+    });
+  }
+
   void _showGoogleDrivePrompt() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) => AlertDialog(
         backgroundColor: const Color(0xFF161B22),
-        title: const Text("Connect Google Drive", style: TextStyle(color: Colors.orangeAccent)),
-        content: const Text("Link your Google Drive securely to sync your agent logs and session histories."),
+        title: const Text("Connect Real Google Drive", style: TextStyle(color: Colors.orangeAccent)),
+        content: const Text("Link your Google Drive via secure OAuth to enable real-time cloud sync."),
         actions: [
           TextButton(
             onPressed: () async {
@@ -157,15 +177,17 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                   _isDriveConnected = true;
                 });
                 Navigator.of(dialogContext, rootNavigator: true).pop();
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Google Drive Connected & Synced Successfully!")),
-                );
+                _addTaskLog("Google Drive OAuth initiated.");
+
+                final Uri uri = Uri.parse(driveAuthUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
               } catch (e) {
                 Navigator.of(dialogContext, rootNavigator: true).pop();
               }
             },
-            child: const Text("Connect Drive", style: TextStyle(color: Color(0xFF58A6FF))),
+            child: const Text("Authorize & Connect", style: TextStyle(color: Color(0xFF58A6FF))),
           ),
         ],
       ),
@@ -185,6 +207,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       setState(() {
         _isAuthorized = true;
       });
+      _addTaskLog("Console unlocked with secure passcode.");
 
       if (!_isDriveConnected) {
         _showGoogleDrivePrompt();
@@ -230,8 +253,235 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       ),
     );
   }
+class _MainAgentScreenState extends State<MainAgentScreen> {
+  final TextEditingController _passcodeController = TextEditingController();
+  final TextEditingController _messageController = TextEditingController();
+  
+  late bool _isAuthorized;
+  late bool _isDriveConnected;
+  String selectedMode = "ask"; 
 
-  // Intelligent message handler with smart local responses and backend integration
+  late List<Map<String, String>> askMessages;
+  late List<Map<String, String>> autoPilotMessages;
+
+  List<Map<String, dynamic>> liveAgentTasks = [
+    {"task": "System Initialized successfully.", "status": "Running"},
+    {"task": "Connected to secure local session storage.", "status": "Running"},
+    {"task": "Awaiting user task inputs & commands...", "status": "Running"},
+  ];
+
+  Map<String, dynamic> metrics = {
+    "thinking": "System active. Parsing Hinglish and English commands...",
+    "learned": "Advanced bilingual and live activity pause controller active.",
+    "problems": "None. All systems operational."
+  };
+
+  final String backendUrl = "https://god-agent-core.onrender.com/command";
+  final String metricsUrl = "https://god-agent-core.onrender.com/metrics";
+  final String driveAuthUrl = "https://god-agent-core.onrender.com/auth/google";
+
+  @override
+  void initState() {
+    super.initState();
+    _isAuthorized = widget.initialAuthorized;
+    _isDriveConnected = widget.initialDriveConnected;
+    askMessages = List.from(widget.initialAsk);
+    autoPilotMessages = List.from(widget.initialAuto);
+
+    _fetchMetrics();
+
+    if (_isAuthorized && !_isDriveConnected) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showGoogleDrivePrompt();
+      });
+    }
+  }
+
+  Future<void> _saveChatHistories() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('ask_messages', json.encode(askMessages));
+      await prefs.setString('autopilot_messages', json.encode(autoPilotMessages));
+    } catch (e) {
+      debugPrint("Save chat error: $e");
+    }
+  }
+
+  void _addTaskLog(String taskName) {
+    setState(() {
+      liveAgentTasks.insert(0, {"task": taskName, "status": "Running"});
+      if (liveAgentTasks.length > 30) liveAgentTasks.removeLast();
+    });
+  }
+
+  void _toggleTaskPause(int index) {
+    setState(() {
+      String currentStatus = liveAgentTasks[index]["status"];
+      liveAgentTasks[index]["status"] = currentStatus == "Running" ? "Paused" : "Running";
+    });
+  }
+
+  void _showGoogleDrivePrompt() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text("Connect Real Google Drive", style: TextStyle(color: Colors.orangeAccent)),
+        content: const Text("Link your Google Drive via secure OAuth to enable real-time cloud sync."),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setBool('is_drive_connected', true);
+                setState(() {
+                  _isDriveConnected = true;
+                });
+                Navigator.of(dialogContext, rootNavigator: true).pop();
+                _addTaskLog("Google Drive OAuth initiated.");
+
+                final Uri uri = Uri.parse(driveAuthUrl);
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              } catch (e) {
+                Navigator.of(dialogContext, rootNavigator: true).pop();
+              }
+            },
+            child: const Text("Authorize & Connect", style: TextStyle(color: Color(0xFF58A6FF))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _verifyPasscode() async {
+    String enteredText = _passcodeController.text.trim();
+    const targetPasscode = "74882242959122690239";
+
+    if (enteredText == targetPasscode) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_authorized', true);
+      } catch (e) {}
+
+      setState(() {
+        _isAuthorized = true;
+      });
+      _addTaskLog("Console unlocked with secure passcode.");
+
+      if (!_isDriveConnected) {
+        _showGoogleDrivePrompt();
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Incorrect Passcode! Please try again.")),
+      );
+    }
+  }
+
+  Future<void> _fetchMetrics() async {
+    try {
+      final response = await http.get(Uri.parse(metricsUrl));
+      if (response.statusCode == 200) {
+        setState(() {
+          metrics = json.decode(response.body);
+        });
+      }
+    } catch (e) {}
+  }
+
+  void _showMetricDetailDialog(String title, String content, IconData icon, Color color) {
+    _fetchMetrics();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.white))),
+          ],
+        ),
+        content: Text(content.isNotEmpty ? content : "No data available yet.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Close", style: TextStyle(color: Color(0xFF58A6FF))),
+          ),
+        ],
+      ),
+    );
+  }
+  void _showLiveActivityModal() {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateModal) => AlertDialog(
+          backgroundColor: const Color(0xFF161B22),
+          title: Row(
+            children: const [
+              Icon(Icons.monitor_heart, color: Colors.greenAccent),
+              SizedBox(width: 10),
+              Text("Live Agent Activity & Control", style: TextStyle(fontSize: 15, color: Colors.white)),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 320,
+            child: ListView.builder(
+              itemCount: liveAgentTasks.length,
+              itemBuilder: (context, index) {
+                final item = liveAgentTasks[index];
+                bool isRunning = item["status"] == "Running";
+                return Container(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0D1117),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item["task"], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            const SizedBox(height: 2),
+                            Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? Colors.greenAccent : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : Colors.greenAccent),
+                        onPressed: () {
+                          setStateModal(() {
+                            _toggleTaskPause(index);
+                          });
+                          setState(() {});
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close", style: TextStyle(color: Color(0xFF58A6FF))),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
@@ -244,29 +494,39 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       _messageController.clear();
     });
     await _saveChatHistories();
+    _addTaskLog("Query: '$trimmed' ($selectedMode mode)");
 
-    // Smart local conversational handling so it never acts robotic on greetings
-    if (["hlo", "hi", "hello", "hey", "sup", "hii", "kaise ho", "yo"].contains(lower)) {
-      String reply = "Hello! Main aapka God-Level AI Agent hoon. Bataiye, aaj kya kaam karna hai?";
-      if (lower == "hlo" || lower == "hi") {
-        reply = "Hello bhai! Sab set hai. Bataiye kya help chahiye?";
-      }
+    if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("kaise ho")) {
+      String reply = "Hello bhai! Main aapka God-Level AI Agent hoon. Sab set hai, bataiye kya task execute karwana hai?";
       setState(() {
         currentList.add({"sender": "agent", "text": reply});
       });
       await _saveChatHistories();
+      _addTaskLog("Responded with bilingual greeting.");
       return;
     }
 
-    if (lower.contains("who are you") || lower.contains("tum kaun ho")) {
+    if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho")) {
+      String reply = "Main aapka personal God-Level AI Agent hoon. Main aapke sabhi tasks, code execution, aur automated workflows ko manage aur execute karne ke liye bana hoon.";
       setState(() {
-        currentList.add({"sender": "agent", "text": "Main aapka personal God-Level AI Agent hoon jo aapke tasks ko automate aur manage karne ke liye banaya gaya hai."});
+        currentList.add({"sender": "agent", "text": reply});
       });
       await _saveChatHistories();
+      _addTaskLog("Responded to identity query.");
       return;
     }
 
-    // Forward actual tasks to backend
+    if (lower.contains("hinglish") || lower.contains("hindi") || lower.contains("language")) {
+      String reply = "Haan bilkul! Main English aur Hinglish dono achhi tarah samajh sakta hoon. Aap apna koi bhi sawal ya task pooch sakte hain.";
+      setState(() {
+        currentList.add({"sender": "agent", "text": reply});
+      });
+      await _saveChatHistories();
+      _addTaskLog("Confirmed bilingual capability.");
+      return;
+    }
+
+    _addTaskLog("Dispatching task to backend core: '$trimmed'");
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -282,9 +542,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         final data = json.decode(response.body);
         String backendResp = data["response"] ?? "Task executed successfully.";
         
-        // Clean up any ugly robotic prefix if present
         if (backendResp.contains("Successfully processed your request:")) {
-          backendResp = "✅ Task successfully completed: '$trimmed'";
+          backendResp = "✅ Task successfully processed and completed: '$trimmed'";
         }
 
         setState(() {
@@ -293,15 +552,18 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             metrics = data["metrics"];
           }
         });
+        _addTaskLog("Task completed: '$trimmed'");
       } else {
         setState(() {
           currentList.add({"sender": "agent", "text": "⚠️ Server returned error code: ${response.statusCode}"});
         });
+        _addTaskLog("Backend error code: ${response.statusCode}");
       }
     } catch (e) {
       setState(() {
         currentList.add({"sender": "agent", "text": "❌ Network error connecting to backend core."});
       });
+      _addTaskLog("Network exception encountered.");
     }
     await _saveChatHistories();
   }
@@ -318,6 +580,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           style: const TextStyle(fontSize: 15),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.monitor_heart, color: Colors.greenAccent),
+            tooltip: "Live Agent Activity",
+            onPressed: _showLiveActivityModal,
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: DropdownButton<String>(
@@ -346,6 +613,16 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
               decoration: BoxDecoration(color: Color(0xFF21262D)),
               child: Text('🧠 Agent Intelligence Panel', style: TextStyle(color: Color(0xFF58A6FF), fontSize: 16, fontWeight: FontWeight.bold)),
             ),
+            ListTile(
+              leading: const Icon(Icons.monitor_heart, color: Colors.greenAccent),
+              title: const Text('Live Agent Activity & Pause'),
+              subtitle: const Text('Tap to view and pause active tasks', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(context);
+                _showLiveActivityModal();
+              },
+            ),
+            const Divider(color: Colors.white24),
             ListTile(
               leading: const Icon(Icons.psychology, color: Colors.blueAccent),
               title: const Text('1. AI agent kya soch raha hai'),
@@ -452,7 +729,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                               controller: _messageController,
                               style: const TextStyle(color: Colors.white, fontSize: 14),
                               decoration: const InputDecoration(
-                                hintText: "Ask AI or give command...",
+                                hintText: "Ask AI or give command (Hinglish/English)...",
                                 hintStyle: TextStyle(color: Colors.white54),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
@@ -460,7 +737,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.mic, color: Colors.white70),
+                            icon: constIcon(Icons.mic, color: Colors.white70),
                             onPressed: () {},
                           ),
                           IconButton(

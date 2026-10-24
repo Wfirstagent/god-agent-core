@@ -91,6 +91,7 @@ class MainAgentScreen extends StatefulWidget {
   @override
   State<MainAgentScreen> createState() => _MainAgentScreenState();
 }
+
 class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
@@ -253,168 +254,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       ),
     );
   }
-class _MainAgentScreenState extends State<MainAgentScreen> {
-  final TextEditingController _passcodeController = TextEditingController();
-  final TextEditingController _messageController = TextEditingController();
-  
-  late bool _isAuthorized;
-  late bool _isDriveConnected;
-  String selectedMode = "ask"; 
 
-  late List<Map<String, String>> askMessages;
-  late List<Map<String, String>> autoPilotMessages;
-
-  List<Map<String, dynamic>> liveAgentTasks = [
-    {"task": "System Initialized successfully.", "status": "Running"},
-    {"task": "Connected to secure local session storage.", "status": "Running"},
-    {"task": "Awaiting user task inputs & commands...", "status": "Running"},
-  ];
-
-  Map<String, dynamic> metrics = {
-    "thinking": "System active. Parsing Hinglish and English commands...",
-    "learned": "Advanced bilingual and live activity pause controller active.",
-    "problems": "None. All systems operational."
-  };
-
-  final String backendUrl = "https://god-agent-core.onrender.com/command";
-  final String metricsUrl = "https://god-agent-core.onrender.com/metrics";
-  final String driveAuthUrl = "https://god-agent-core.onrender.com/auth/google";
-
-  @override
-  void initState() {
-    super.initState();
-    _isAuthorized = widget.initialAuthorized;
-    _isDriveConnected = widget.initialDriveConnected;
-    askMessages = List.from(widget.initialAsk);
-    autoPilotMessages = List.from(widget.initialAuto);
-
-    _fetchMetrics();
-
-    if (_isAuthorized && !_isDriveConnected) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _showGoogleDrivePrompt();
-      });
-    }
-  }
-
-  Future<void> _saveChatHistories() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ask_messages', json.encode(askMessages));
-      await prefs.setString('autopilot_messages', json.encode(autoPilotMessages));
-    } catch (e) {
-      debugPrint("Save chat error: $e");
-    }
-  }
-
-  void _addTaskLog(String taskName) {
-    setState(() {
-      liveAgentTasks.insert(0, {"task": taskName, "status": "Running"});
-      if (liveAgentTasks.length > 30) liveAgentTasks.removeLast();
-    });
-  }
-
-  void _toggleTaskPause(int index) {
-    setState(() {
-      String currentStatus = liveAgentTasks[index]["status"];
-      liveAgentTasks[index]["status"] = currentStatus == "Running" ? "Paused" : "Running";
-    });
-  }
-
-  void _showGoogleDrivePrompt() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext dialogContext) => AlertDialog(
-        backgroundColor: const Color(0xFF161B22),
-        title: const Text("Connect Real Google Drive", style: TextStyle(color: Colors.orangeAccent)),
-        content: const Text("Link your Google Drive via secure OAuth to enable real-time cloud sync."),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              try {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('is_drive_connected', true);
-                setState(() {
-                  _isDriveConnected = true;
-                });
-                Navigator.of(dialogContext, rootNavigator: true).pop();
-                _addTaskLog("Google Drive OAuth initiated.");
-
-                final Uri uri = Uri.parse(driveAuthUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-              } catch (e) {
-                Navigator.of(dialogContext, rootNavigator: true).pop();
-              }
-            },
-            child: const Text("Authorize & Connect", style: TextStyle(color: Color(0xFF58A6FF))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _verifyPasscode() async {
-    String enteredText = _passcodeController.text.trim();
-    const targetPasscode = "74882242959122690239";
-
-    if (enteredText == targetPasscode) {
-      try {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_authorized', true);
-      } catch (e) {}
-
-      setState(() {
-        _isAuthorized = true;
-      });
-      _addTaskLog("Console unlocked with secure passcode.");
-
-      if (!_isDriveConnected) {
-        _showGoogleDrivePrompt();
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Incorrect Passcode! Please try again.")),
-      );
-    }
-  }
-
-  Future<void> _fetchMetrics() async {
-    try {
-      final response = await http.get(Uri.parse(metricsUrl));
-      if (response.statusCode == 200) {
-        setState(() {
-          metrics = json.decode(response.body);
-        });
-      }
-    } catch (e) {}
-  }
-
-  void _showMetricDetailDialog(String title, String content, IconData icon, Color color) {
-    _fetchMetrics();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161B22),
-        title: Row(
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(width: 10),
-            Expanded(child: Text(title, style: const TextStyle(fontSize: 16, color: Colors.white))),
-          ],
-        ),
-        content: Text(content.isNotEmpty ? content : "No data available yet.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Close", style: TextStyle(color: Color(0xFF58A6FF))),
-          ),
-        ],
-      ),
-    );
-  }
   void _showLiveActivityModal() {
     showDialog(
       context: context,
@@ -733,11 +573,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                                 hintStyle: TextStyle(color: Colors.white54),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                              ),
-                            ),
+                              )
+),
                           ),
                           IconButton(
-                            icon: constIcon(Icons.mic, color: Colors.white70),
+                            icon: const Icon(Icons.mic, color: Colors.white70),
                             onPressed: () {},
                           ),
                           IconButton(

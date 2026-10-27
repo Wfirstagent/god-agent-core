@@ -66,7 +66,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   Map<String, dynamic> metrics = {
     "thinking": "Analyzing user input stream with advanced bilingual NLP...",
-    "learned": "Synthesized interactive task staging and relock security loop.",
+    "learned": "Synthesized natural conversational engine and relock security loop.",
     "problems": "None. All neural circuits operating at 100%."
   };
 
@@ -109,25 +109,24 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
   }
 
-  // Feature: Disconnect Google Drive
   Future<void> _disconnectDrive() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_drive_connected', false);
       setState(() => _isDriveConnected = false);
       _addTaskLog("Google Drive disconnected by user.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected Successfully!")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected!")));
+      _showGoogleDrivePrompt();
     } catch (e) {}
   }
 
-  // Feature: Relock Console / Re-enter Passcode
   Future<void> _relockConsole() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_authorized', false);
       setState(() => _isAuthorized = false);
-      _addTaskLog("Console relocked by user.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode to access history.")));
+      _addTaskLog("Console relocked securely.");
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode.")));
     } catch (e) {}
   }
 
@@ -247,14 +246,18 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     await _saveChatHistories();
     _addTaskLog("Query: '$trimmed'");
 
-    if (["hi", "hello", "hlo", "hey", "sup", "kaise ho"].any((w) => lower.contains(w))) {
-      setState(() => currentList.add({"sender": "agent", "text": "Hello bhai! Main aapka God-Level AI Agent hoon. Bataiye kya task karna hai?"}));
+    // Smart Conversational Handling (No robotic task completed for casual talk)
+    if (["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "kaise ho"].any((w) => lower.contains(w))) {
+      setState(() => currentList.add({"sender": "agent", "text": "Hello bhai! Main aapka God-Level AI Agent hoon. Sab set hai, bataiye kya task execute karwana hai?"}));
       await _saveChatHistories();
+      _addTaskLog("Responded with natural conversational greeting.");
       return;
     }
-    if (lower.contains("who are you") || lower.contains("tum kon ho")) {
-      setState(() => currentList.add({"sender": "agent", "text": "Main aapka personal God-Level AI Agent hoon jo aapke sabhi tasks aur workflows ko manage karta hai."}));
+
+    if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho")) {
+      setState(() => currentList.add({"sender": "agent", "text": "Main aapka personal God-Level AI Agent hoon jo aapke sabhi tasks aur workflows ko manage aur execute karne ke liye bana hai."}));
       await _saveChatHistories();
+      _addTaskLog("Responded to identity query.");
       return;
     }
 
@@ -265,7 +268,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         stagedTasks.clear();
         setState(() => currentList.add({"sender": "agent", "text": "🚀 **All Tasks Finalized!** Execution started for: [$allTasksSummary]. Background loops running."}));
         await _saveChatHistories();
-        _addTaskLog("Executed finalized task stack.");
+        _addTaskLog("Executed finalized task stack: $allTasksSummary");
         return;
       } else if (lower.contains("hata") || lower.contains("remove")) {
         setState(() => currentList.add({"sender": "agent", "text": "Theek hai, kaun sa task hatana hai uska naam bataiye? Staged tasks: ${stagedTasks.join(', ')}"}));
@@ -273,7 +276,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         return;
       } else {
         stagedTasks.add(trimmed);
-        setState(() => currentList.add({"sender": "agent", "text": "📝 Maine ye naya task bhi jod liya hai. Abhi tak ke total tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add/remove karna hai, ya main 'Final kar do' bolun?"}));
+        setState(() => currentList.add({"sender": "agent", "text": "📝 Maine ye naya task bhi jod liya hai. Total tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add/remove karna hai, ya main 'Final kar do' bolun?"}));
         await _saveChatHistories();
         return;
       }
@@ -287,6 +290,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       return;
     }
 
+    // Backend dispatch for complex tasks
     try {
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -296,14 +300,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         String resp = data["response"] ?? "Done.";
-        if (resp.contains("Successfully processed")) resp = "✅ Task completed: '$trimmed'";
+        if (resp.contains("Successfully processed")) resp = "✅ Task successfully completed: '$trimmed'";
         setState(() { currentList.add({"sender": "agent", "text": resp}); if (data["metrics"] != null) metrics = data["metrics"]; });
         _addTaskLog("Completed: '$trimmed'");
       } else {
-        setState(() => currentList.add({"sender": "agent", "text": "⚠️ Server error: ${response.statusCode}"}));
+        setState(() => currentList.add({"sender": "agent", "text": "⚠️ Server error code: ${response.statusCode}"}));
       }
     } catch (e) {
-      setState(() => currentList.add({"sender": "agent", "text": "❌ Network error."}));
+      setState(() => currentList.add({"sender": "agent", "text": "❌ Network error connecting to core."}));
     }
     await _saveChatHistories();
   }

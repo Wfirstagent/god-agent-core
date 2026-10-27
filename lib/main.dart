@@ -66,7 +66,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   Map<String, dynamic> metrics = {
     "thinking": "Analyzing user query streams with zero-latency neural parsing...",
-    "learned": "Synthesized flawless bilingual conversational intelligence & OAuth hooks.",
+    "learned": "Synthesized flawless conversational engine and OAuth hooks.",
     "problems": "None. All security and execution pipelines operating at peak performance."
   };
 
@@ -244,38 +244,34 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     String trimmed = text.trim(), lower = trimmed.toLowerCase();
     setState(() { currentList.add({"sender": "user", "text": trimmed}); _messageController.clear(); });
     await _saveChatHistories();
-    _addTaskLog("Query: '$trimmed'");
 
-    // 1. Smart Conversational & Status Responses (Never robotic)
-    if (["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "kaise ho"].any((w) => lower.contains(w))) {
+    // STRICT CONVERSATIONAL FILTER: Prevent robotic task execution bubbles for casual chat / greetings
+    List<String> casualTriggers = ["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "bhai", "bro", "yup", "kaise ho", "kya हाल", "what's up"];
+    if (casualTriggers.any((w) => lower == w || lower.startsWith(w + " ") || lower.endsWith(" " + w))) {
       setState(() => currentList.add({"sender": "agent", "text": "Hello bhai! Main aapka God-Level AI Agent hoon. Sab set hai, bataiye kya task execute karwana hai?"}));
       await _saveChatHistories();
-      _addTaskLog("Responded with natural conversational greeting.");
       return;
     }
 
     if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho")) {
       setState(() => currentList.add({"sender": "agent", "text": "Main aapka personal God-Level AI Agent hoon jo aapke sabhi tasks, automations aur workflows ko manage karne ke liye bana hai."}));
       await _saveChatHistories();
-      _addTaskLog("Responded to identity query.");
       return;
     }
 
     if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("what you doing") || lower.contains("status")) {
       setState(() => currentList.add({"sender": "agent", "text": "Main abhi aapke system vaults monitor kar raha hoon aur background task streams ko optimize kar raha hoon. Aap bataiye, kaun sa naya task execute karna hai?"}));
       await _saveChatHistories();
-      _addTaskLog("Responded with live activity status.");
       return;
     }
 
     if (lower.contains("kitna kaam") || lower.contains("capacity") || lower.contains("handle")) {
       setState(() => currentList.add({"sender": "agent", "text": "Main ek sath unlimited concurrent tasks, multi-threaded code execution, aur automated workflows handle kar sakta hoon!"}));
       await _saveChatHistories();
-      _addTaskLog("Responded to capacity query.");
       return;
     }
 
-    // 2. Interactive Task Staging & Finalization Workflow
+    // Interactive Task Staging & Finalization Workflow
     if (awaitingFinalConfirmation) {
       if (lower.contains("final") || lower.contains("haan") || lower.contains("ok") || lower.contains("suru kar") || lower.contains("start")) {
         awaitingFinalConfirmation = false;
@@ -305,7 +301,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       return;
     }
 
-    // 3. Backend dispatch for complex commands
+    // Real Backend Dispatch for actual complex commands
+    _addTaskLog("Query: '$trimmed'");
     try {
       final response = await http.post(
         Uri.parse(backendUrl),

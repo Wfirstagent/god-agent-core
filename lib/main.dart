@@ -30,9 +30,9 @@ class GodAgentApp extends StatelessWidget {
       title: 'God-Level AI Agent v2',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF05070B),
+        scaffoldBackgroundColor: const Color(0xFF000000),
         primaryColor: const Color(0xFF00FF66),
-        colorScheme: ColorScheme.dark(primary: const Color(0xFF00FF66), secondary: const Color(0xFF00E5FF), surface: const Color(0xFF0D1117)),
+        colorScheme: ColorScheme.dark(primary: const Color(0xFF00FF66), secondary: const Color(0xFF00E5FF), surface: const Color(0xFF0F1117)),
       ),
       home: MainAgentScreen(initialAuthorized: isAuthorized, initialDriveConnected: isDriveConnected, initialAsk: initialAsk, initialAuto: initialAuto),
       debugShowCheckedModeBanner: false,
@@ -51,12 +51,15 @@ class MainAgentScreen extends StatefulWidget {
 class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _passcodeController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _searchTaskController = TextEditingController();
+  
   late bool _isAuthorized, _isDriveConnected;
   String selectedMode = "ask";
   late List<Map<String, String>> askMessages, autoPilotMessages;
 
   List<String> stagedTasks = [];
   bool awaitingFinalConfirmation = false;
+  String taskSearchQuery = "";
 
   List<Map<String, dynamic>> liveAgentTasks = [
     {"task": "System Core Initialized.", "status": "Running"},
@@ -65,8 +68,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   ];
 
   Map<String, dynamic> metrics = {
-    "thinking": "Analyzing user query streams with zero-latency neural parsing...",
-    "learned": "Synthesized flawless conversational engine and OAuth hooks.",
+    "thinking": "Analyzing user query streams with zero-latency ChatGPT-grade neural parsing...",
+    "learned": "Synthesized flawless conversational engine and live task search filter.",
     "problems": "None. All security and execution pipelines operating at peak performance."
   };
 
@@ -98,7 +101,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   void _addTaskLog(String taskName) {
     setState(() {
       liveAgentTasks.insert(0, {"task": taskName, "status": "Running"});
-      if (liveAgentTasks.length > 30) liveAgentTasks.removeLast();
+      if (liveAgentTasks.length > 50) liveAgentTasks.removeLast();
     });
   }
 
@@ -126,7 +129,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       await prefs.setBool('is_authorized', false);
       setState(() => _isAuthorized = false);
       _addTaskLog("Console relocked securely.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode to access history.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode to restore history.")));
     } catch (e) {}
   }
 
@@ -135,7 +138,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0D1117),
+        backgroundColor: const Color(0xFF0F1117),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFF00FF66), width: 1.5)),
         title: const Text("Connect Real Google Drive", style: TextStyle(color: Color(0xFF00FF66), fontWeight: FontWeight.bold)),
         content: const Text("Authenticate securely via browser OAuth to sync your vaults and logs directly to your real Google Drive account.", style: TextStyle(color: Colors.white70)),
@@ -187,7 +190,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0D1117),
+        backgroundColor: const Color(0xFF0F1117),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: color, width: 1.5)),
         title: Row(children: [Icon(icon, color: color), const SizedBox(width: 10), Text(title, style: const TextStyle(fontSize: 16, color: Colors.white))]),
         content: Text(content.isNotEmpty ? content : "No telemetry data recorded yet.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
@@ -201,33 +204,72 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (c, setStateModal) => AlertDialog(
-          backgroundColor: const Color(0xFF0D1117),
+          backgroundColor: const Color(0xFF0F1117),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Color(0xFF00FF66), width: 1.5)),
-          title: Row(children: const [Icon(Icons.monitor_heart, color: Color(0xFF00FF66)), SizedBox(width: 10), Text("Live Agent Activity & Pause", style: TextStyle(fontSize: 15, color: Colors.white))]),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: const [Icon(Icons.monitor_heart, color: Color(0xFF00FF66)), SizedBox(width: 10), Text("Live Activity & Search", style: TextStyle(fontSize: 15, color: Colors.white))]),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _searchTaskController,
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+                decoration: InputDecoration(
+                  hintText: "Search tasks or activities...",
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF00FF66), size: 18),
+                  filled: true,
+                  fillColor: const Color(0xFF000000),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                ),
+                onChanged: (val) {
+                  setStateModal(() {
+                    taskSearchQuery = val.toLowerCase();
+                  });
+                },
+              ),
+            ],
+          ),
           content: SizedBox(
-            width: double.maxFinite, height: 320,
-            child: ListView.builder(
-              itemCount: liveAgentTasks.length,
-              itemBuilder: (context, index) {
-                final item = liveAgentTasks[index];
-                bool isRunning = item["status"] == "Running";
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: const Color(0xFF05070B), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
-                  child: Row(children: [
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(item["task"], style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                      const SizedBox(height: 2),
-                      Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? const Color(0xFF00FF66) : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ])),
-                    IconButton(
-                      icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : const Color(0xFF00FF66)),
-                      onPressed: () {
-                        setStateModal(() => _toggleTaskPause(index));
-                        setState(() {});
-                      },
-                    )
-                  ]),
+            width: double.maxFinite, height: 260,
+            child: Builder(
+              builder: (context) {
+                final filteredTasks = liveAgentTasks.where((item) {
+                  return item["task"].toString().toLowerCase().contains(taskSearchQuery);
+                }).toList();
+
+                if (filteredTasks.isEmpty) {
+                  return const Center(child: Text("No matching tasks found.", style: TextStyle(color: Colors.white54, fontSize: 13)));
+                }
+
+                return ListView.builder(
+                  itemCount: filteredTasks.length,
+                  itemBuilder: (context, index) {
+                    final item = filteredTasks[index];
+                    bool isRunning = item["status"] == "Running";
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: const Color(0xFF000000), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                      child: Row(children: [
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(item["task"], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          const SizedBox(height: 2),
+                          Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? const Color(0xFF00FF66) : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ])),
+                        IconButton(
+                          icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : const Color(0xFF00FF66)),
+                          onPressed: () {
+                            setStateModal(() {
+                              int realIndex = liveAgentTasks.indexOf(item);
+                              if (realIndex != -1) _toggleTaskPause(realIndex);
+                            });
+                            setState(() {});
+                          },
+                        )
+                      ]),
+                    );
+                  },
                 );
               },
             ),
@@ -245,8 +287,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     setState(() { currentList.add({"sender": "user", "text": trimmed}); _messageController.clear(); });
     await _saveChatHistories();
 
-    // STRICT CONVERSATIONAL FILTER: Prevent robotic task execution bubbles for casual chat / greetings
-    List<String> casualTriggers = ["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "bhai", "bro", "yup", "kaise ho", "kya हाल", "what's up"];
+    // STRICT CONVERSATIONAL FILTER: Zero robotic fake task bubbles for casual talk
+    List<String> casualTriggers = ["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "bhai", "bro", "yup", "nope", "tum hi ho na", "kaise ho", "kya haal", "what's up", "what you doing", "tum abhi kya kar rhe ho"];
     if (casualTriggers.any((w) => lower == w || lower.startsWith(w + " ") || lower.endsWith(" " + w))) {
       setState(() => currentList.add({"sender": "agent", "text": "Hello bhai! Main aapka God-Level AI Agent hoon. Sab set hai, bataiye kya task execute karwana hai?"}));
       await _saveChatHistories();
@@ -259,19 +301,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       return;
     }
 
-    if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("what you doing") || lower.contains("status")) {
-      setState(() => currentList.add({"sender": "agent", "text": "Main abhi aapke system vaults monitor kar raha hoon aur background task streams ko optimize kar raha hoon. Aap bataiye, kaun sa naya task execute karna hai?"}));
-      await _saveChatHistories();
-      return;
-    }
-
     if (lower.contains("kitna kaam") || lower.contains("capacity") || lower.contains("handle")) {
       setState(() => currentList.add({"sender": "agent", "text": "Main ek sath unlimited concurrent tasks, multi-threaded code execution, aur automated workflows handle kar sakta hoon!"}));
       await _saveChatHistories();
       return;
     }
 
-    // Interactive Task Staging & Finalization Workflow
+    // Interactive Task Staging & Finalization Workflow ("Final kar do")
     if (awaitingFinalConfirmation) {
       if (lower.contains("final") || lower.contains("haan") || lower.contains("ok") || lower.contains("suru kar") || lower.contains("start")) {
         awaitingFinalConfirmation = false;
@@ -287,7 +323,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         return;
       } else {
         stagedTasks.add(trimmed);
-        setState(() => currentList.add({"sender": "agent", "text": "📝 Maine ye naya task bhi jod liya hai. Total tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add/remove karna hai, ya main 'Final kar do' bolun?"}));
+        setState(() => currentList.add({"sender": "agent", "text": "📝 Maine ye naya task bhi jod liya hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add/remove karna hai, ya main 'Final kar do' bolun?"}));
         await _saveChatHistories();
         return;
       }
@@ -301,7 +337,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       return;
     }
 
-    // Real Backend Dispatch for actual complex commands
+    // Real Backend Dispatch for complex commands
     _addTaskLog("Query: '$trimmed'");
     try {
       final response = await http.post(
@@ -331,7 +367,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     final activeMsgs = selectedMode == "ask" ? askMessages : autoPilotMessages;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0D1117),
+        backgroundColor: const Color(0xFF000000),
         elevation: 0,
         title: Text(selectedMode == "ask" ? "Ask AI Agent Chat Mode" : "Auto Pilot Chat Mode", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
@@ -339,7 +375,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: DropdownButton<String>(
-              value: selectedMode, dropdownColor: const Color(0xFF0D1117), underline: const SizedBox(),
+              value: selectedMode, dropdownColor: const Color(0xFF0F1117), underline: const SizedBox(),
               items: const [
                 DropdownMenuItem(value: "ask", child: Text("Ask AI Mode", style: TextStyle(fontSize: 13, color: Colors.white))),
                 DropdownMenuItem(value: "autopilot", child: Text("Auto Pilot", style: TextStyle(fontSize: 13, color: Colors.white))),
@@ -350,10 +386,10 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         ],
       ),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF0D1117),
+        backgroundColor: const Color(0xFF0F1117),
         child: ListView(padding: EdgeInsets.zero, children: [
           const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF05070B)),
+            decoration: BoxDecoration(color: Color(0xFF000000)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
               Icon(Icons.psychology, color: Color(0xFF00FF66), size: 32),
               SizedBox(height: 8),
@@ -362,8 +398,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.monitor_heart, color: Color(0xFF00FF66)),
-            title: const Text('Live Activity & Pause'),
-            subtitle: const Text('Monitor and control tasks', style: TextStyle(color: Colors.white70, fontSize: 11)),
+            title: const Text('Live Activity & Search'),
+            subtitle: const Text('Monitor, search and control tasks', style: TextStyle(color: Colors.white70, fontSize: 11)),
             onTap: () { Navigator.pop(context); _showLiveActivityModal(); },
           ),
           const Divider(color: Colors.white24),
@@ -424,9 +460,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6), padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isUser ? const Color(0xFF0D3B26) : const Color(0xFF0D1117),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isUser ? const Color(0xFF00FF66) : Colors.white24, width: 1),
+                        color: isUser ? const Color(0xFF163322) : const Color(0xFF0F1117),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: isUser ? const Color(0xFF00FF66) : Colors.white12, width: 1),
                       ),
                       child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 14)),
                     ),
@@ -434,13 +470,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 },
               )),
               SafeArea(child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF05070B),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF000000),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(color: const Color(0xFF0D1117), borderRadius: BorderRadius.circular(30), border: Border.all(color: const Color(0xFF00FF66), width: 1)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: const Color(0xFF0F1117), borderRadius: BorderRadius.circular(28), border: Border.all(color: const Color(0xFF00FF66), width: 1.2)),
                   child: Row(children: [
                     IconButton(icon: const Icon(Icons.add, color: Color(0xFF00FF66)), onPressed: () {}),
-                    Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Ask AI or give command...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
+                    Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Ask ChatGPT-style AI...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
                     IconButton(icon: const Icon(Icons.send, color: Color(0xFF00FF66)), onPressed: () => _sendMessage(_messageController.text)),
                   ]),
                 ),

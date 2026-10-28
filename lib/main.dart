@@ -287,9 +287,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     setState(() { currentList.add({"sender": "user", "text": trimmed}); _messageController.clear(); });
     await _saveChatHistories();
 
-    // STRICT CONVERSATIONAL FILTER: Zero robotic fake task bubbles for casual talk
-    List<String> casualTriggers = ["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "bhai", "bro", "yup", "nope", "tum hi ho na", "kaise ho", "kya haal", "what's up", "what you doing", "tum abhi kya kar rhe ho"];
-    if (casualTriggers.any((w) => lower == w || lower.startsWith(w + " ") || lower.endsWith(" " + w))) {
+    // STRICT LOCAL CLIENT-SIDE FILTER FOR CASUAL CHAT & GREETINGS (Zero backend spam)
+    List<String> casualTriggers = ["hi", "hello", "hlo", "hey", "sup", "yoo", "hii", "bhai", "bro", "yup", "nope", "hol", "tum hi ho na", "kaise ho", "kya haal", "what's up", "what you doing", "tum abhi kya kar rhe ho"];
+    if (casualTriggers.contains(lower) || casualTriggers.any((w) => lower == w)) {
       setState(() => currentList.add({"sender": "agent", "text": "Hello bhai! Main aapka God-Level AI Agent hoon. Sab set hai, bataiye kya task execute karwana hai?"}));
       await _saveChatHistories();
       return;
@@ -337,7 +337,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       return;
     }
 
-    // Real Backend Dispatch for complex commands
+    // Real Backend Dispatch for actual complex commands
     _addTaskLog("Query: '$trimmed'");
     try {
       final response = await http.post(

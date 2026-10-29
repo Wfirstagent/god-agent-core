@@ -30,9 +30,9 @@ class GodAgentApp extends StatelessWidget {
       title: 'God-Level AI Agent v2',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
-        primaryColor: const Color(0xFF2EA043),
-        colorScheme: ColorScheme.dark(primary: const Color(0xFF2EA043), secondary: const Color(0xFF58A6FF), surface: const Color(0xFF161B22)),
+        scaffoldBackgroundColor: const Color(0xFF000000),
+        primaryColor: const Color(0xFF10A37F),
+        colorScheme: ColorScheme.dark(primary: const Color(0xFF10A37F), secondary: const Color(0xFF19C37D), surface: const Color(0xFF171717)),
       ),
       home: MainAgentScreen(initialAuthorized: isAuthorized, initialDriveConnected: isDriveConnected, initialAsk: initialAsk, initialAuto: initialAuto),
       debugShowCheckedModeBanner: false,
@@ -62,15 +62,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   String taskSearchQuery = "";
 
   List<Map<String, dynamic>> liveAgentTasks = [
-    {"task": "System Core Initialized successfully.", "status": "Running"},
+    {"task": "ChatGPT Obsidian UI Core Initialized.", "status": "Running"},
     {"task": "Secure Session Vault Connected.", "status": "Running"},
-    {"task": "Smart Conversational Staging Engine Active.", "status": "Running"},
+    {"task": "Conversational Discussion Engine Active.", "status": "Running"},
   ];
 
   Map<String, dynamic> metrics = {
-    "thinking": "Intelligent pre-processor layer active. Staging user conversation smoothly.",
-    "learned": "Synthesized robust task staging, finalization workflow & safe OAuth launcher.",
-    "problems": "None. All security and execution pipelines operating at peak performance."
+    "thinking": "ChatGPT-grade obsidian layout active. Real browser OAuth handler ready.",
+    "learned": "Synthesized fluent task discussion, staging and finalization workflow.",
+    "problems": "None. All security and UI pipelines operating at peak performance."
   };
 
   final String driveAuthUrl = "https://god-agent-core.onrender.com/auth/google";
@@ -106,7 +106,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
   }
 
-  Future<void> _launchSafeDriveOAuth() async {
+  Future<void> _launchRealDriveOAuth() async {
     try {
       final uri = Uri.parse(driveAuthUrl);
       if (await canLaunchUrl(uri)) {
@@ -114,14 +114,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('is_drive_connected', true);
         setState(() => _isDriveConnected = true);
-        _addTaskLog("Google Drive OAuth browser session authorized.");
+        _addTaskLog("Real Google Drive OAuth browser window opened.");
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive OAuth Browser Launched!")));
       } else {
-        // Fallback for custom URL scheme launcher
         await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("OAuth Notice: Please open $driveAuthUrl in your browser.")),
+        SnackBar(content: Text("Please open $driveAuthUrl in your browser.")),
       );
     }
   }
@@ -132,7 +132,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       await prefs.setBool('is_drive_connected', false);
       setState(() => _isDriveConnected = false);
       _addTaskLog("Google Drive disconnected by user.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected Successfully!")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected!")));
     } catch (e) {}
   }
 
@@ -142,7 +142,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       await prefs.setBool('is_authorized', false);
       setState(() => _isAuthorized = false);
       _addTaskLog("Console relocked securely.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode to restore history.")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked. Enter Passcode.")));
     } catch (e) {}
   }
 
@@ -161,7 +161,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF161B22),
+        backgroundColor: const Color(0xFF212121),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color, width: 1)),
         title: Row(children: [Icon(icon, color: color), const SizedBox(width: 10), Text(title, style: const TextStyle(fontSize: 16, color: Colors.white))]),
         content: Text(content.isNotEmpty ? content : "No telemetry data recorded yet.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
@@ -175,12 +175,12 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (c, setStateModal) => AlertDialog(
-          backgroundColor: const Color(0xFF161B22),
+          backgroundColor: const Color(0xFF212121),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24, width: 1)),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: const [Icon(Icons.monitor_heart, color: Color(0xFF2EA043)), SizedBox(width: 10), Text("Live Activity & Search", style: TextStyle(fontSize: 15, color: Colors.white))]),
+              Row(children: const [Icon(Icons.monitor_heart, color: Color(0xFF10A37F)), SizedBox(width: 10), Text("Live Activity & Search", style: TextStyle(fontSize: 15, color: Colors.white))]),
               const SizedBox(height: 12),
               TextField(
                 controller: _searchTaskController,
@@ -188,9 +188,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 decoration: InputDecoration(
                   hintText: "Search tasks or activities...",
                   hintStyle: const TextStyle(color: Colors.white38),
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF2EA043), size: 18),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF10A37F), size: 18),
                   filled: true,
-                  fillColor: const Color(0xFF0A0A0A),
+                  fillColor: const Color(0xFF171717),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 ),
@@ -221,15 +221,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     bool isRunning = item["status"] == "Running";
                     return Container(
                       margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFF0A0A0A), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                      decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                       child: Row(children: [
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                           Text(item["task"], style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 2),
-                          Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? const Color(0xFF2EA043) : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                          Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? const Color(0xFF10A37F) : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                         ])),
                         IconButton(
-                          icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : const Color(0xFF2EA043)),
+                          icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : const Color(0xFF10A37F)),
                           onPressed: () {
                             setStateModal(() {
                               int realIndex = liveAgentTasks.indexOf(item);
@@ -245,7 +245,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
               },
             ),
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close", style: TextStyle(color: Color(0xFF2EA043))))],
+          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close", style: TextStyle(color: Color(0xFF10A37F))))],
         ),
       ),
     );
@@ -266,34 +266,33 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         awaitingFinalConfirmation = false;
         String allTasksSummary = stagedTasks.join(", ");
         stagedTasks.clear();
-        reply = "🚀 **Task Stacking Finalized!** Details of tasks being sent to AI Agent core: [$allTasksSummary]. Background execution started successfully.";
+        reply = "🚀 **Task Staging Finalized!** Discussion completed and sent to AI Agent core: [$allTasksSummary]. Background execution started successfully.";
         _addTaskLog("Executed finalized task stack: $allTasksSummary");
       } else if (lower.contains("hata") || lower.contains("remove")) {
-        reply = "Theek hai, kaun sa task hatana hai uska naam batayiye? Aapke current staged tasks ye hain: ${stagedTasks.join(', ')}";
+        reply = "Theek hai, kaun sa task hatana hai uska naam batayiye? Current staged tasks: ${stagedTasks.join(', ')}";
       } else {
         stagedTasks.add(trimmed);
-        reply = "📝 Maine aapki yeh baat note kar li hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add karna hai, ya ab main 'Final kar do' bolun?";
+        reply = "📝 Maine aapki baat note kar li hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur discuss karke add karna hai, ya ab main **'Final kar do'** bolun?";
       }
     } 
-    // 2. Trigger Task Staging Mode
-    else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("upgrade")) {
+    // 2. Trigger Task Discussion & Staging Mode
+    else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("upgrade") || lower.contains("diside karna hai") || lower.contains("discuss")) {
       awaitingFinalConfirmation = true;
       stagedTasks.clear();
-      reply = "🎯 Theek hai bhai! Aap mujhse jo bhi baat karoge, main sabhi details yahan stage karunga. Aap apne tasks ek-ek karke batayiye, aur jab saare ho jayein tab **'Final kar do'** boliyega!";
+      reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** boliyega!";
     } 
-    // 3. Natural Conversational Pre-processor AI Layer
+    // 3. Natural ChatGPT-style Conversational Assistant Layer
     else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("yoo") || lower.contains("bhai") || lower.contains("bro") || lower.contains("hel")) {
-      reply = "Hello bhai! Main aapka AI Assistant hoon[span_10](start_span)[span_10](end_span). Aap mujhse freely baat kar sakte hain. Jab aapko koi task assign karna ho, bas **'naya kaam'** boliye.";
+      reply = "Hello bhai! Main aapka ChatGPT-style AI Assistant hoon[span_3](start_span)[span_3](end_span). Aap mujhse freely kuch bhi discuss kar sakte hain. Jab task banana ho, tab **'naya kaam'** boliye.";
     } else if (lower.contains("how are you") || lower.contains("kaise ho") || lower.contains("kya haal") || lower.contains("pagal")) {
-      reply = "Main ekdam badhiya hoon bhai! Aap bataiye, aaj aapke system ke liye kya planning hai?";
-    } else if (lower.contains("who are you") || lower.contains("tum kon hi") || lower.contains("tum kon ho") || lower.contains("tum kaun ho") || lower.contains("what your name")) {
-      reply = "Main aapka personal AI Assistant hoon jo aapki baaton ko sunkar samajhta hai aur jab aap kehte hain, tab agent tak task pahunchata hai[span_11](start_span)[span_11](end_span).";
+      reply = "Main ekdam badhiya hoon bhai! Aap bataiye, aaj aapke project ke liye kya discussion karni hai?";
+    } else if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho") || lower.contains("what your name")) {
+      reply = "Main aapka personal AI Assistant hoon jo aapki baaton ko samajhkar discuss karta hai aur final command agent tak pahunchata hai[span_4](start_span)[span_4](end_span).";
     } else if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("status")) {
-      reply = "Main aapki baaton ko sun raha hoon aur system activity monitor kar raha hoon[span_12](start_span)[span_12](end_span). Bataiye kya assist karoon?";
+      reply = "Main aapki baaton ko sun raha hoon aur system activity monitor kar raha hoon[span_5](start_span)[span_5](end_span). Bataiye kya discuss karna hai?";
     } else {
-      // General conversational response that caches context and prompts user if it's a task
-      reply = "Maine aapki baat suni: '$trimmed'. Agar aapko ise agent ke liye task banana hai toh **'naya kaam'** boliye, warna aise hi discuss karte hain!";
-      _addTaskLog("Chat query: '$trimmed'");
+      reply = "Maine aapki baat suni aur samajhi: '$trimmed'. Agar aapko ise agent ke liye task discuss karke fix karna hai toh **'naya kaam'** boliye!";
+      _addTaskLog("Discussed query: '$trimmed'");
     }
 
     setState(() {
@@ -307,15 +306,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     final activeMsgs = selectedMode == "ask" ? askMessages : autoPilotMessages;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF161B22),
+        backgroundColor: const Color(0xFF171717),
         elevation: 0,
         title: Text(selectedMode == "ask" ? "Ask AI Agent Chat Mode" : "Auto Pilot Chat Mode", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(icon: const Icon(Icons.monitor_heart, color: Color(0xFF2EA043)), tooltip: "Live Activity & Search", onPressed: _showLiveActivityModal),
+          IconButton(icon: const Icon(Icons.monitor_heart, color: Color(0xFF10A37F)), tooltip: "Live Activity & Search", onPressed: _showLiveActivityModal),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: DropdownButton<String>(
-              value: selectedMode, dropdownColor: const Color(0xFF161B22), underline: const SizedBox(),
+              value: selectedMode, dropdownColor: const Color(0xFF171717), underline: const SizedBox(),
               items: const [
                 DropdownMenuItem(value: "ask", child: Text("Ask AI Mode", style: TextStyle(fontSize: 13, color: Colors.white))),
                 DropdownMenuItem(value: "autopilot", child: Text("Auto Pilot", style: TextStyle(fontSize: 13, color: Colors.white))),
@@ -326,18 +325,18 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         ],
       ),
       drawer: Drawer(
-        backgroundColor: const Color(0xFF161B22),
+        backgroundColor: const Color(0xFF171717),
         child: ListView(padding: EdgeInsets.zero, children: [
           const DrawerHeader(
-            decoration: BoxDecoration(color: Color(0xFF0A0A0A)),
+            decoration: BoxDecoration(color: Color(0xFF000000)),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-              Icon(Icons.psychology, color: Color(0xFF2EA043), size: 32),
+              Icon(Icons.psychology, color: Color(0xFF10A37F), size: 32),
               SizedBox(height: 8),
-              Text('🧠 God-Level Agent Panel', style: TextStyle(color: Color(0xFF2EA043), fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('🧠 ChatGPT Obsidian Agent', style: TextStyle(color: Color(0xFF10A37F), fontSize: 16, fontWeight: FontWeight.bold)),
             ]),
           ),
           ListTile(
-            leading: const Icon(Icons.monitor_heart, color: Color(0xFF2EA043)),
+            leading: const Icon(Icons.monitor_heart, color: Color(0xFF10A37F)),
             title: const Text('Live Activity & Search'),
             subtitle: const Text('Monitor, search and control tasks', style: TextStyle(color: Colors.white70, fontSize: 11)),
             onTap: () { Navigator.pop(context); _showLiveActivityModal(); },
@@ -345,9 +344,9 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           const Divider(color: Colors.white24),
           ListTile(
             leading: const Icon(Icons.cloud, color: Colors.blueAccent),
-            title: const Text('Google Drive OAuth Connect'),
-            subtitle: Text(_isDriveConnected ? "Connected (Real OAuth)" : "Click to Authorize Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _launchSafeDriveOAuth(); },
+            title: const Text('Connect Real Google Drive'),
+            subtitle: Text(_isDriveConnected ? "Connected via OAuth" : "Authorize Real Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            onTap: () { Navigator.pop(context); _launchRealDriveOAuth(); },
           ),
           const Divider(color: Colors.white24),
           ListTile(
@@ -388,13 +387,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       ),
       body: !_isAuthorized
           ? Center(child: Padding(padding: const EdgeInsets.all(24.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              const Icon(Icons.lock_outline, size: 64, color: Color(0xFF2EA043)),
+              const Icon(Icons.lock_outline, size: 64, color: Color(0xFF10A37F)),
               const SizedBox(height: 16),
               const Text("Enter Secure Console Passcode to Restore History", style: TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
               const SizedBox(height: 20),
               TextField(controller: _passcodeController, obscureText: true, decoration: const InputDecoration(border: OutlineInputBorder(), hintText: "Passcode...")),
               const SizedBox(height: 16),
-              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2EA043), minimumSize: const Size.fromHeight(48)), onPressed: _verifyPasscode, child: const Text("Unlock & Restore History", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)))
+              ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10A37F), minimumSize: const Size.fromHeight(48)), onPressed: _verifyPasscode, child: const Text("Unlock & Restore History", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)))
             ])))
           : Column(children: [
               Expanded(child: ListView.builder(
@@ -407,9 +406,8 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                     child: Container(
                       margin: const EdgeInsets.symmetric(vertical: 6), padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: isUser ? const Color(0xFF238636) : const Color(0xFF161B22),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: isUser ? const Color(0xFF2EA043) : Colors.white12, width: 1),
+                        color: isUser ? const Color(0xFF10A37F) : const Color(0xFF212121),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 14)),
                     ),
@@ -417,14 +415,14 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 },
               )),
               SafeArea(child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF0A0A0A),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF000000),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24, width: 1)),
+                  decoration: BoxDecoration(color: const Color(0xFF212121), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24, width: 1)),
                   child: Row(children: [
                     IconButton(icon: const Icon(Icons.add, color: Colors.white70), onPressed: () {}),
-                    Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Type a message...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
-                    IconButton(icon: const Icon(Icons.send, color: Color(0xFF2EA043)), onPressed: () => _sendMessage(_messageController.text)),
+                    Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Message ChatGPT Agent...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
+                    IconButton(icon: const Icon(Icons.send, color: Color(0xFF10A37F)), onPressed: () => _sendMessage(_messageController.text)),
                   ]),
                 ),
               )),

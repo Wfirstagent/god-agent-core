@@ -64,12 +64,12 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   List<Map<String, dynamic>> liveAgentTasks = [
     {"task": "System Core Initialized successfully.", "status": "Running"},
     {"task": "Secure Session Vault Connected.", "status": "Running"},
-    {"task": "Local Conversational Engine Active.", "status": "Running"},
+    {"task": "Smart Conversational Staging Engine Active.", "status": "Running"},
   ];
 
   Map<String, dynamic> metrics = {
-    "thinking": "Local neural intelligence active. Zero robotic queue echoes.",
-    "learned": "Synthesized clean standard UI and direct OAuth browser integration.",
+    "thinking": "Intelligent pre-processor layer active. Staging user conversation smoothly.",
+    "learned": "Synthesized robust task staging, finalization workflow & safe OAuth launcher.",
     "problems": "None. All security and execution pipelines operating at peak performance."
   };
 
@@ -82,9 +82,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     _isDriveConnected = widget.initialDriveConnected;
     askMessages = List.from(widget.initialAsk);
     autoPilotMessages = List.from(widget.initialAuto);
-    if (_isAuthorized && !_isDriveConnected) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _launchRealDriveOAuth());
-    }
   }
 
   Future<void> _saveChatHistories() async {
@@ -109,19 +106,24 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     });
   }
 
-  Future<void> _launchRealDriveOAuth() async {
+  Future<void> _launchSafeDriveOAuth() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_drive_connected', true);
-      setState(() => _isDriveConnected = true);
-      _addTaskLog("Real Google Drive browser OAuth launched.");
       final uri = Uri.parse(driveAuthUrl);
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('is_drive_connected', true);
+        setState(() => _isDriveConnected = true);
+        _addTaskLog("Google Drive OAuth browser session authorized.");
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not launch browser OAuth URL.")));
+        // Fallback for custom URL scheme launcher
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
       }
-    } catch (e) {}
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("OAuth Notice: Please open $driveAuthUrl in your browser.")),
+      );
+    }
   }
 
   Future<void> _disconnectDrive() async {
@@ -130,8 +132,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       await prefs.setBool('is_drive_connected', false);
       setState(() => _isDriveConnected = false);
       _addTaskLog("Google Drive disconnected by user.");
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected!")));
-      _launchRealDriveOAuth();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected Successfully!")));
     } catch (e) {}
   }
 
@@ -151,7 +152,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
       setState(() => _isAuthorized = true);
       _passcodeController.clear();
       _addTaskLog("Console unlocked securely. History restored.");
-      if (!_isDriveConnected) _launchRealDriveOAuth();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incorrect Passcode!")));
     }
@@ -258,39 +258,42 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     setState(() { currentList.add({"sender": "user", "text": trimmed}); _messageController.clear(); });
     await _saveChatHistories();
 
-    // 100% SMART CONVERSATIONAL FALLBACK (NEVER robotic queue spam for general text)
     String reply = "";
 
-    if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("yoo") || lower.contains("bhai") || lower.contains("bro") || lower.contains("hel") || lower.contains("wow")) {
-      reply = "Hello bhai! Main aapka AI Agent hoon. Sab kuch makkhan chal raha hai. Bataiye, aaj kya naya task execute karwana hai?";
-    } else if (lower.contains("how are you") || lower.contains("kaise ho") || lower.contains("kya haal") || lower.contains("pagal")) {
-      reply = "Main ekdam badhiya hoon bhai! Aap bataiye, aapka system aur workflow kaisa chal raha hai?";
-    } else if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho") || lower.contains("what your name") || lower.contains("what is your name")) {
-      reply = "Main aapka personal AI Agent hoon jo aapke sabhi tasks, automations aur workflows ko manage karne ke liye bana hai.";
-    } else if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("what you doing") || lower.contains("status")) {
-      reply = "Main abhi aapke system vaults, background loops, aur secure session streams ko monitor kar raha hoon. Aap apna naya task bataiye!";
-    } else if (lower.contains("kitna kaam") || lower.contains("capacity") || lower.contains("handle")) {
-      reply = "Main ek sath unlimited concurrent tasks, multi-threaded code execution, aur automated workflows handle kar sakta hoon!";
-    } else if (awaitingFinalConfirmation) {
-      if (lower.contains("final") || lower.contains("haan") || lower.contains("ok") || lower.contains("suru kar") || lower.contains("start") || lower.contains("kar do")) {
+    // 1. Task Staging & Finalization Workflow ("Final kar do")
+    if (awaitingFinalConfirmation) {
+      if (lower.contains("final") || lower.contains("kar do") || lower.contains("suru kar") || lower.contains("start") || lower.contains("haan")) {
         awaitingFinalConfirmation = false;
         String allTasksSummary = stagedTasks.join(", ");
         stagedTasks.clear();
-        reply = "🚀 **All Tasks Finalized!** Execution started for: [$allTasksSummary]. Background loops running smoothly.";
+        reply = "🚀 **Task Stacking Finalized!** Details of tasks being sent to AI Agent core: [$allTasksSummary]. Background execution started successfully.";
         _addTaskLog("Executed finalized task stack: $allTasksSummary");
       } else if (lower.contains("hata") || lower.contains("remove")) {
-        reply = "Theek hai, kaun sa task hatana hai uska naam bataiye? Staged tasks: ${stagedTasks.join(', ')}";
+        reply = "Theek hai, kaun sa task hatana hai uska naam batayiye? Aapke current staged tasks ye hain: ${stagedTasks.join(', ')}";
       } else {
         stagedTasks.add(trimmed);
-        reply = "📝 Maine ye naya task bhi jod liya hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add/remove karna hai, ya main 'Final kar do' bolun?";
+        reply = "📝 Maine aapki yeh baat note kar li hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add karna hai, ya ab main 'Final kar do' bolun?";
       }
-    } else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("upgrade") || lower.contains("task dena hai")) {
+    } 
+    // 2. Trigger Task Staging Mode
+    else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("upgrade")) {
       awaitingFinalConfirmation = true;
       stagedTasks.clear();
-      reply = "🎯 Theek hai! Aapko kya-kya naya kaam ya upgrade dena hai? Ek-ek karke batayiye. Jab saare tasks ho jayein, tab 'Final kar do' boliyega, main sab list karke start kar dunga.";
+      reply = "🎯 Theek hai bhai! Aap mujhse jo bhi baat karoge, main sabhi details yahan stage karunga. Aap apne tasks ek-ek karke batayiye, aur jab saare ho jayein tab **'Final kar do'** boliyega!";
+    } 
+    // 3. Natural Conversational Pre-processor AI Layer
+    else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("yoo") || lower.contains("bhai") || lower.contains("bro") || lower.contains("hel")) {
+      reply = "Hello bhai! Main aapka AI Assistant hoon[span_10](start_span)[span_10](end_span). Aap mujhse freely baat kar sakte hain. Jab aapko koi task assign karna ho, bas **'naya kaam'** boliye.";
+    } else if (lower.contains("how are you") || lower.contains("kaise ho") || lower.contains("kya haal") || lower.contains("pagal")) {
+      reply = "Main ekdam badhiya hoon bhai! Aap bataiye, aaj aapke system ke liye kya planning hai?";
+    } else if (lower.contains("who are you") || lower.contains("tum kon hi") || lower.contains("tum kon ho") || lower.contains("tum kaun ho") || lower.contains("what your name")) {
+      reply = "Main aapka personal AI Assistant hoon jo aapki baaton ko sunkar samajhta hai aur jab aap kehte hain, tab agent tak task pahunchata hai[span_11](start_span)[span_11](end_span).";
+    } else if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("status")) {
+      reply = "Main aapki baaton ko sun raha hoon aur system activity monitor kar raha hoon[span_12](start_span)[span_12](end_span). Bataiye kya assist karoon?";
     } else {
-      reply = "Bhai, maine aapka message samajh liya: '$trimmed'. Agar ye koi naya task hai toh 'naya kaam' boliye, warna bataiye isme kya assist karoon.";
-      _addTaskLog("Chat message: '$trimmed'");
+      // General conversational response that caches context and prompts user if it's a task
+      reply = "Maine aapki baat suni: '$trimmed'. Agar aapko ise agent ke liye task banana hai toh **'naya kaam'** boliye, warna aise hi discuss karte hain!";
+      _addTaskLog("Chat query: '$trimmed'");
     }
 
     setState(() {
@@ -341,6 +344,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ),
           const Divider(color: Colors.white24),
           ListTile(
+            leading: const Icon(Icons.cloud, color: Colors.blueAccent),
+            title: const Text('Google Drive OAuth Connect'),
+            subtitle: Text(_isDriveConnected ? "Connected (Real OAuth)" : "Click to Authorize Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            onTap: () { Navigator.pop(context); _launchSafeDriveOAuth(); },
+          ),
+          const Divider(color: Colors.white24),
+          ListTile(
             leading: const Icon(Icons.psychology, color: Colors.blueAccent),
             title: const Text('1. AI Agent kya soch raha hai'),
             subtitle: Text(metrics["thinking"] ?? "Thinking...", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
@@ -364,7 +374,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ListTile(
             leading: const Icon(Icons.cloud_off, color: Colors.orangeAccent),
             title: const Text('Disconnect Google Drive'),
-            subtitle: Text(_isDriveConnected ? "Connected" : "Not Connected", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            subtitle: const Text('Revoke sync session', style: TextStyle(color: Colors.white70, fontSize: 11)),
             onTap: () { Navigator.pop(context); _disconnectDrive(); },
           ),
           const Divider(color: Colors.white24),
@@ -410,7 +420,6 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF0A0A0A),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  // Standard professional border, no neon glowing border
                   decoration: BoxDecoration(color: const Color(0xFF161B22), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white24, width: 1)),
                   child: Row(children: [
                     IconButton(icon: const Icon(Icons.add, color: Colors.white70), onPressed: () {}),

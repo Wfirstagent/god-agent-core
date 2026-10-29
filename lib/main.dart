@@ -12,17 +12,31 @@ void main() async {
     isAuthorized = prefs.getBool('is_authorized') ?? false;
     isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
     String? sAsk = prefs.getString('ask_messages');
-    if (sAsk != null && sAsk.isNotEmpty) initialAsk = List>.from(json.decode(sAsk).map((i) => Map<String, String>.from(i)));
+    if (sAsk != null && sAsk.isNotEmpty) {
+      initialAsk = List>.from(json.decode(sAsk).map((i) => Map<String, String>.from(i)));
+    }
     String? sAuto = prefs.getString('autopilot_messages');
-    if (sAuto != null && sAuto.isNotEmpty) initialAuto = List>.from(json.decode(sAuto).map((i) => Map<String, String>.from(i)));
+    if (sAuto != null && sAuto.isNotEmpty) {
+      initialAuto = List>.from(json.decode(sAuto).map((i) => Map<String, String>.from(i)));
+    }
   } catch (e) {}
   runApp(GodAgentApp(isAuthorized: isAuthorized, isDriveConnected: isDriveConnected, initialAsk: initialAsk, initialAuto: initialAuto));
 }
 
 class GodAgentApp extends StatelessWidget {
-  final bool isAuthorized, isDriveConnected;
-  final List> initialAsk, initialAuto;
-  const GodAgentApp({Key? key, required this.isAuthorized, required this.isDriveConnected, required this.initialAsk, required this.initialAuto}) : super(key: key);
+  final bool isAuthorized;
+  final bool isDriveConnected;
+  final List> initialAsk;
+  final List> initialAuto;
+
+  const GodAgentApp({
+    Key? key,
+    required this.isAuthorized,
+    required this.isDriveConnected,
+    required this.initialAsk,
+    required this.initialAuto,
+  }) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -31,18 +45,37 @@ class GodAgentApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF000000),
         primaryColor: const Color(0xFF10A37F),
-        colorScheme: ColorScheme.dark(primary: const Color(0xFF10A37F), secondary: const Color(0xFF19C37D), surface: const Color(0xFF171717)),
+        colorScheme: ColorScheme.dark(
+          primary: const Color(0xFF10A37F),
+          secondary: const Color(0xFF19C37D),
+          surface: const Color(0xFF171717),
+        ),
       ),
-      home: MainAgentScreen(initialAuthorized: isAuthorized, initialDriveConnected: isDriveConnected, initialAsk: initialAsk, initialAuto: initialAuto),
+      home: MainAgentScreen(
+        initialAuthorized: isAuthorized,
+        initialDriveConnected: isDriveConnected,
+        initialAsk: initialAsk,
+        initialAuto: initialAuto,
+      ),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
 class MainAgentScreen extends StatefulWidget {
-  final bool initialAuthorized, initialDriveConnected;
-  final List> initialAsk, initialAuto;
-  const MainAgentScreen({Key? key, required this.initialAuthorized, required this.initialDriveConnected, required this.initialAsk, required this.initialAuto}) : super(key: key);
+  final bool initialAuthorized;
+  final bool initialDriveConnected;
+  final List> initialAsk;
+  final List> initialAuto;
+
+  const MainAgentScreen({
+    Key? key,
+    required this.initialAuthorized,
+    required this.initialDriveConnected,
+    required this.initialAsk,
+    required this.initialAuto,
+  }) : super(key: key);
+
   @override
   State<MainAgentScreen> createState() => _MainAgentScreenState();
 }
@@ -52,9 +85,11 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchTaskController = TextEditingController();
   
-  late bool _isAuthorized, _isDriveConnected;
+  late bool _isAuthorized;
+  late bool _isDriveConnected;
   String selectedMode = "ask";
-  late List> askMessages, autoPilotMessages;
+  late List> askMessages;
+  late List> autoPilotMessages;
 
   List<String> stagedTasks = [];
   bool awaitingFinalConfirmation = false;
@@ -63,7 +98,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   List> liveAgentTasks = [
     {"task": "ChatGPT Obsidian UI Core Initialized.", "status": "Running"},
     {"task": "Secure Local Session Vault Connected.", "status": "Running"},
-    {"task": "Smart Conversational Brain Active.", "status": "Running"},
+    {"task": "Conversational Discussion Engine Active.", "status": "Running"},
   ];
 
   Map<String, dynamic> metrics = {
@@ -103,7 +138,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
   void _toggleTaskPause(int index) {
     setState(() {
-      String st = liveAgentTasks[index]["status"];
+      String st = liveAgentTasks[index]["status"].toString();
       liveAgentTasks[index]["status"] = st == "Running" ? "Paused" : "Running";
     });
   }
@@ -139,9 +174,13 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                 await prefs.setBool('is_drive_connected', true);
                 setState(() => _isDriveConnected = true);
                 _addTaskLog("Real Google Drive OAuth browser session authorized.");
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Connected Successfully!")));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Connected Successfully!")));
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not launch browser OAuth.")));
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not launch browser OAuth.")));
+                }
               }
             },
             child: const Text("Authorize & Connect", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
@@ -251,7 +290,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                       decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
                       child: Row(children: [
                         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(item["task"], style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          Text(item["task"].toString(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
                           const SizedBox(height: 2),
                           Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? const Color(0xFF10A37F) : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
                         ])),
@@ -281,13 +320,16 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   Future<void> _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
     final currentList = selectedMode == "ask" ? askMessages : autoPilotMessages;
-    String trimmed = text.trim(), lower = trimmed.toLowerCase();
-    setState(() { currentList.add({"sender": "user", "text": trimmed}); _messageController.clear(); });
+    String trimmed = text.trim();
+    String lower = trimmed.toLowerCase();
+    setState(() { 
+      currentList.add({"sender": "user", "text": trimmed}); 
+      _messageController.clear(); 
+    });
     await _saveChatHistories();
 
     String reply = "";
 
-    // 1. Task Staging & Finalization Workflow
     if (awaitingFinalConfirmation) {
       if (lower.contains("final") || lower.contains("kar do") || lower.contains("suru kar") || lower.contains("start") || lower.contains("haan")) {
         awaitingFinalConfirmation = false;
@@ -301,26 +343,20 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
         stagedTasks.add(trimmed);
         reply = "📝 Maine aapki baat note kar li hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur discuss karke add karna hai, ya ab main **'Final kar do'** bolun?";
       }
-    } 
-    // 2. Task Suggestion / Idea Request Handling
-    else if (lower.contains("idea") || lower.contains("suggest") || lower.contains("task do") || lower.contains("kya karu") || lower.contains("kya task")) {
-      reply = "Bhai, aapke project ke liye yeh 3 sabse best tasks suggest kar raha hoon:\n\n1. **Telegram Media Indexer Bot**: Forwarded files ko automatically SQLite database me index karna[span_5](start_span)[span_5](end_span);\n2. **Automated SQLite/Drive Backup Sync**: Har 1 hour me local databases ko Google Drive par backup bhejna;\n3. **Background Media Downloader (yt-dlp)**: Link send karte hi background me video/audio queue process karna.\n\nInme se kaun sa task final karwana hai? Agar inpar kaam shuru karna hai toh **'naya kaam'** boliye!";
-    }
-    // 3. Trigger Task Discussion & Staging Mode
-    else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("upgrade") || lower.contains("diside karna hai") || lower.contains("discuss")) {
+    } else if (lower.contains("idea") || lower.contains("suggest") || lower.contains("task do") || lower.contains("kya karu") || lower.contains("kya task")) {
+      reply = "Bhai, aapke project ke liye yeh 3 sabse best tasks suggest kar raha hoon:\n\n1. **Telegram Media Indexer Bot**: Forwarded files ko automatically SQLite database me index karna;\n2. **Automated SQLite/Drive Backup Sync**: Har 1 hour me local databases ko Google Drive par backup bhejna;\n3. **Background Media Downloader (yt-dlp)**: Link send karte hi background me video/audio queue process karna.\n\nInme se kaun sa task final karwana hai? Agar inpar kaam shuru karna hai toh **'naya kaam'** boliye!";
+    } else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("upgrade") || lower.contains("diside karna hai") || lower.contains("discuss")) {
       awaitingFinalConfirmation = true;
       stagedTasks.clear();
       reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** boliyega!";
-    } 
-    // 4. Natural ChatGPT-style Conversational Assistant Layer
-    else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("yoo") || lower.contains("bhai") || lower.contains("bro") || lower.contains("hel")) {
-      reply = "Hello bhai! Main aapka ChatGPT-style AI Assistant hoon[span_6](start_span)[span_6](end_span). Aap mujhse freely kuch bhi discuss kar sakte hain, task ideas maang sakte hain. Jab task banana ho, tab **'naya kaam'** boliye[span_7](start_span)[span_7](end_span).";
+    } else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("sup") || lower.contains("yoo") || lower.contains("bhai") || lower.contains("bro") || lower.contains("hel")) {
+      reply = "Hello bhai! Main aapka ChatGPT-style AI Assistant hoon. Aap mujhse freely kuch bhi discuss kar sakte hain, task ideas maang sakte hain. Jab task banana ho, tab **'naya kaam'** boliye.";
     } else if (lower.contains("how are you") || lower.contains("kaise ho") || lower.contains("kya haal") || lower.contains("pagal")) {
       reply = "Main ekdam badhiya hoon bhai! Aap bataiye, aaj aapke project ke liye kya discussion karni hai?";
     } else if (lower.contains("who are you") || lower.contains("tum kon ho") || lower.contains("tum kaun ho") || lower.contains("what your name")) {
-      reply = "Main aapka personal AI Assistant hoon jo aapki baaton ko samajhkar discuss karta hai aur final command agent tak pahunchata hai[span_8](start_span)[span_8](end_span).";
+      reply = "Main aapka personal AI Assistant hoon jo aapki baaton ko samajhkar discuss karta hai aur final command agent tak pahunchata hai.";
     } else if (lower.contains("kya kar rhe ho") || lower.contains("what are you doing") || lower.contains("status")) {
-      reply = "Main aapki baaton ko sun raha hoon aur system activity monitor kar raha hoon[span_9](start_span)[span_9](end_span). Bataiye kya discuss karna hai?";
+      reply = "Main aapki baaton ko sun raha hoon aur system activity monitor kar raha hoon. Bataiye kya discuss karna hai?";
     } else {
       reply = "Maine aapki baat suni aur samajhi: '$trimmed'. Agar aapko ise agent ke liye task discuss karke fix karna hai toh **'naya kaam'** boliye!";
       _addTaskLog("Discussed query: '$trimmed'");
@@ -376,29 +412,29 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ListTile(
             leading: const Icon(Icons.cloud, color: Colors.blueAccent),
             title: const Text('Connect Google Drive'),
-            subtitle: Text(_isDriveConnected ? "Connected via OAuth" : "Click to Authorize Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            subtitle: Text(_isDriveConnected ? "Connected Successfully" : "Click to Sync Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
             onTap: () { Navigator.pop(context); _showGoogleDriveDialog(); },
           ),
           const Divider(color: Colors.white24),
           ListTile(
             leading: const Icon(Icons.psychology, color: Colors.blueAccent),
             title: const Text('1. AI Agent kya soch raha hai'),
-            subtitle: Text(metrics["thinking"] ?? "Thinking...", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Thinking Process", metrics["thinking"] ?? "", Icons.psychology, Colors.blueAccent),
+            subtitle: Text(metrics["thinking"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            onTap: () => _showMetricDetailDialog("AI Agent Thinking Process", metrics["thinking"].toString(), Icons.psychology, Colors.blueAccent),
           ),
           const Divider(color: Colors.white24),
           ListTile(
             leading: const Icon(Icons.book, color: Colors.greenAccent),
             title: const Text('2. AI Agent ne aaj kya sikha hai'),
-            subtitle: Text(metrics["learned"] ?? "Learning logs...", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Learning Logs", metrics["learned"] ?? "", Icons.book, Colors.greenAccent),
+            subtitle: Text(metrics["learned"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            onTap: () => _showMetricDetailDialog("AI Agent Learning Logs", metrics["learned"].toString(), Icons.book, Colors.greenAccent),
           ),
           const Divider(color: Colors.white24),
           ListTile(
             leading: const Icon(Icons.warning, color: Colors.redAccent),
             title: const Text('3. AI Agent ko kahan problem aa rahi hai'),
-            subtitle: Text(metrics["problems"] ?? "None", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Error Tracker", metrics["problems"] ?? "", Icons.warning, Colors.redAccent),
+            subtitle: Text(metrics["problems"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
+            onTap: () => _showMetricDetailDialog("AI Agent Error Tracker", metrics["problems"].toString(), Icons.warning, Colors.redAccent),
           ),
           const Divider(color: Colors.white24),
           ListTile(

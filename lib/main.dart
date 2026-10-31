@@ -10,15 +10,20 @@ void main() async {
     final prefs = await SharedPreferences.getInstance();
     isAuth = prefs.getBool('is_auth') ?? false;
     String? s = prefs.getString('msgs');
-    if (s != null) msgs = json.decode(s);
+    if (s != null) {
+      var decoded = json.decode(s);
+      for (var i in decoded) {
+        msgs.add(Map<String, String>.from(i));
+      }
+    }
   } catch (e) {}
-  runApp(MyApp(isAuth: isAuth, msgs: msgs));
+  runApp(GodAgentApp(isAuth: isAuth, msgs: msgs));
 }
 
-class MyApp extends StatelessWidget {
+class GodAgentApp extends StatelessWidget {
   final bool isAuth;
   final List msgs;
-  const MyApp({Key? key, required this.isAuth, required this.msgs}) : super(key: key);
+  const GodAgentApp({Key? key, required this.isAuth, required this.msgs}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +31,11 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF000000),
-        primaryColor: const Color(0xFF10A37F),
+        primaryColor: const Color(0xFFE0E0E0),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFE0E0E0),
+          surface: Color(0xFF171717),
+        ),
       ),
       home: ChatScreen(isAuth: isAuth, initialMsgs: msgs),
     );
@@ -67,7 +76,7 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {
       messages.add({"sender": "user", "text": text.trim()});
       _msgController.clear();
-      messages.add({"sender": "agent", "text": "Hello bhai! Main aapka ChatGPT-style AI Agent hoon. Sab kuch makkhan chal raha hai!"});
+      messages.add({"sender": "agent", "text": "Hello bhai! Main aapka Obsidian AI Agent hoon. Sab kuch makkhan chal raha hai aur task staging pipeline ready hai."});
     });
     _save();
   }
@@ -76,28 +85,48 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     if (!_authorized) {
       return Scaffold(
+        backgroundColor: const Color(0xFF000000),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.lock, size: 64, color: Color(0xFF10A37F)),
+                const Icon(Icons.lock_outline, size: 64, color: Color(0xFFE0E0E0)),
                 const SizedBox(height: 16),
-                const Text("Enter Passcode", style: TextStyle(color: Colors.white70)),
+                const Text("Enter Secure Console Passcode", style: TextStyle(color: Colors.white70, fontSize: 14)),
                 const SizedBox(height: 16),
-                TextField(controller: _passController, obscureText: true, decoration: const InputDecoration(border: OutlineInputBorder())),
+                TextField(
+                  controller: _passController,
+                  obscureText: true,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: const Color(0xFF171717),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                    hintText: "Passcode...",
+                    hintStyle: const TextStyle(color: Colors.white38),
+                  ),
+                ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10A37F)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE0E0E0),
+                    foregroundColor: Colors.black,
+                    minimumSize: const Size.fromHeight(48),
+                  ),
                   onPressed: () async {
                     if (_passController.text.trim() == "74882242959122690239") {
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.setBool('is_auth', true);
                       setState(() => _authorized = true);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Incorrect Passcode!")),
+                      );
                     }
                   },
-                  child: const Text("Unlock", style: TextStyle(color: Colors.black)),
+                  child: const Text("Unlock Console", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -107,9 +136,11 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     return Scaffold(
+      backgroundColor: const Color(0xFF000000),
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
-        title: const Text("ChatGPT Obsidian Agent", style: TextStyle(fontSize: 15)),
+        elevation: 0,
+        title: const Text("Obsidian AI Agent", style: TextStyle(fontSize: 15, color: Colors.white)),
       ),
       body: Column(
         children: [
@@ -126,10 +157,10 @@ class _ChatScreenState extends State<ChatScreen> {
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isUser ? const Color(0xFF10A37F) : const Color(0xFF212121),
+                      color: isUser ? const Color(0xFF2E2E2E) : const Color(0xFF171717),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white)),
+                    child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 14)),
                   ),
                 );
               },
@@ -137,22 +168,34 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           SafeArea(
             child: Container(
-              padding: const EdgeInsets.all(8),
-              color: Colors.black,
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _msgController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(hintText: "Message ChatGPT Agent...", border: InputBorder.none),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              color: const Color(0xFF000000),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF171717),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _msgController,
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
+                        decoration: const InputDecoration(
+                          hintText: "Message AI Agent...",
+                          hintStyle: TextStyle(color: Colors.white38),
+                          border: InputBorder.none,
+                        ),
+                      ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xFF10A37F)),
-                    onPressed: () => _send(_msgController.text),
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(Icons.send, color: Color(0xFFE0E0E0)),
+                      onPressed: () => _send(_msgController.text),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

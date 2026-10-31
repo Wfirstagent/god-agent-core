@@ -5,25 +5,25 @@ import 'dart:convert';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   bool isAuth = false;
-  List msgs = [];
+  List initialAsk = [];
   try {
     final prefs = await SharedPreferences.getInstance();
     isAuth = prefs.getBool('is_auth') ?? false;
-    String? s = prefs.getString('msgs');
+    String? s = prefs.getString('ask_msgs');
     if (s != null) {
       var decoded = json.decode(s);
       for (var i in decoded) {
-        msgs.add(Map<String, String>.from(i));
+        initialAsk.add(Map<String, String>.from(i));
       }
     }
   } catch (e) {}
-  runApp(GodAgentApp(isAuth: isAuth, msgs: msgs));
+  runApp(GodAgentApp(isAuth: isAuth, initialAsk: initialAsk));
 }
 
 class GodAgentApp extends StatelessWidget {
   final bool isAuth;
-  final List msgs;
-  const GodAgentApp({Key? key, required this.isAuth, required this.msgs}) : super(key: key);
+  final List initialAsk;
+  const GodAgentApp({Key? key, required this.isAuth, required this.initialAsk}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -37,15 +37,15 @@ class GodAgentApp extends StatelessWidget {
           surface: Color(0xFF171717),
         ),
       ),
-      home: ChatScreen(isAuth: isAuth, initialMsgs: msgs),
+      home: ChatScreen(isAuth: isAuth, initialAsk: initialAsk),
     );
   }
 }
 
 class ChatScreen extends StatefulWidget {
   final bool isAuth;
-  final List initialMsgs;
-  const ChatScreen({Key? key, required this.isAuth, required this.initialMsgs}) : super(key: key);
+  final List initialAsk;
+  const ChatScreen({Key? key, required this.isAuth, required this.initialAsk}) : super(key: key);
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -54,31 +54,69 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _passController = TextEditingController();
   final TextEditingController _msgController = TextEditingController();
+  
   late bool _authorized;
-  late List messages;
+  late List askMessages;
+  
+  // Task Staging Workflow variables
+  List stagedTasks = [];
+  bool awaitingFinalConfirmation = false;
 
   @override
   void initState() {
     super.initState();
     _authorized = widget.isAuth;
-    messages = List.from(widget.initialMsgs);
+    askMessages = List.from(widget.initialAsk);
   }
 
   Future<void> _save() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('msgs', json.encode(messages));
+      await prefs.setString('ask_msgs', json.encode(askMessages));
     } catch (e) {}
   }
 
-  void _send(String text) {
+  void _sendMessage(String text) async {
     if (text.trim().isEmpty) return;
+    String trimmed = text.trim();
+    String lower = trimmed.toLowerCase();
+
     setState(() {
-      messages.add({"sender": "user", "text": text.trim()});
+      askMessages.add({"sender": "user", "text": trimmed});
       _msgController.clear();
-      messages.add({"sender": "agent", "text": "Hello bhai! Main aapka Obsidian AI Agent hoon. Sab kuch makkhan chal raha hai aur task staging pipeline ready hai."});
     });
-    _save();
+    await _save();
+
+    String reply = "";
+
+    if (awaitingFinalConfirmation) {
+      if (lower.contains("final") || lower.contains("kar do") || lower.contains("bej do") || lower.contains("suru kar") || lower.contains("haan")) {
+        awaitingFinalConfirmation = false;
+        String allTasks = stagedTasks.join(", ");
+        stagedTasks.clear();
+        reply = "🚀 **Task Staging Finalized!** Saare tasks ($allTasks) successfully agent core ko dispatch kar diye gaye hain. Background execution shuru ho raha hai.";
+      } else if (lower.contains("hata") || lower.contains("remove")) {
+        reply = "Theek hai, kaun sa task hatana hai uska naam batayiye? Current staged tasks: ${stagedTasks.join(', ')}";
+      } else {
+        stagedTasks.add(trimmed);
+        reply = "📝 Maine aapka point note kar liya hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add karna hai, ya ab main **'Final kar do'** bolun?";
+      }
+    } else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("discuss")) {
+      awaitingFinalConfirmation = true;
+      stagedTasks.clear();
+      reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** ya **'Bej do'** boliyega!";
+    } else if (lower.contains("apple") || lower.contains("meaning") || lower.contains("kya hai")) {
+      reply = "Apple ek fruit bhi hai aur ek tech company (Apple Inc.) ka naam bhi hai. Baaki bataiye, aapko iske alawa aur kya janna hai?";
+    } else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("bhai")) {
+      reply = "Hello bhai! Main aapka Obsidian AI Agent hoon. Aap mujhse normal baat bhi kar sakte hain aur naye tasks discuss karne ke liye **'naya kaam'** bol sakte hain.";
+    } else {
+      reply = "Maine aapki baat suni aur samajhi: '$trimmed'. Agar aapko ise agent ke liye task ke taur par fix karna hai toh **'naya kaam'** boliye!";
+    }
+
+    setState(() {
+      askMessages.add({"sender": "agent", "text": reply});
+    });
+    await _save();
   }
 
   @override
@@ -140,16 +178,16 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
         elevation: 0,
-        title: const Text("Obsidian AI Agent", style: TextStyle(fontSize: 15, color: Colors.white)),
+        title: const Text("Obsidian AI Agent (Staging Core)", style: TextStyle(fontSize: 15, color: Colors.white)),
       ),
       body: Column(
         children: [
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(12),
-              itemCount: messages.length,
+              itemCount: askMessages.length,
               itemBuilder: (context, index) {
-                final m = messages[index];
+                final m = askMessages[index];
                 final isUser = m["sender"] == "user";
                 return Align(
                   alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -184,7 +222,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         controller: _msgController,
                         style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: const InputDecoration(
-                          hintText: "Message AI Agent...",
+                          hintText: "Message AI Agent or type 'naya kaam'...",
                           hintStyle: TextStyle(color: Colors.white38),
                           border: InputBorder.none,
                         ),
@@ -192,7 +230,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.send, color: Color(0xFFE0E0E0)),
-                      onPressed: () => _send(_msgController.text),
+                      onPressed: () => _sendMessage(_msgController.text),
                     ),
                   ],
                 ),

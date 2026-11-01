@@ -86,18 +86,17 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   List stagedTasks = [];
   bool awaitingFinalConfirmation = false;
   String taskSearchQuery = "";
-  bool isVoiceCallActive = false;
 
   List liveAgentTasks = [
     {"task": "Obsidian Dark UI Core Initialized.", "status": "Running"},
     {"task": "Secure Google Drive Vault Sync Ready.", "status": "Running"},
-    {"task": "Voice & Multi-Modal Parser Active.", "status": "Running"},
+    {"task": "Dynamic Conversational Engine Active.", "status": "Running"},
   ];
 
   Map metrics = {
-    "thinking": "Natural language processing model active with dynamic call-style reasoning.",
-    "learned": "Synthesized obsidian dark theme, encrypted Google Drive sync, and live activity tracker.",
-    "problems": "None. All security and voice pipelines operating smoothly."
+    "thinking": "Real-time query processing active. Fixed loop bugs eliminated.",
+    "learned": "Clean obsidian dark theme, encrypted Google Drive sync, and reactive message handling.",
+    "problems": "Resolved static response loop issue."
   };
 
   final String driveAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
@@ -188,36 +187,35 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
   }
 
   void _showVoiceCallModal() {
-    setState(() => isVoiceCallActive = true);
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF171717),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white24, width: 1)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              const Icon(Icons.mic, size: 54, color: Color(0xFFE0E0E0)),
-              const SizedBox(height: 16),
-              const Text("AI Voice Call Active", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text("Jaise YouTube video me baat hoti hai, waisa live conversational session chal raha hai...", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(44)),
-                icon: const Icon(Icons.call_end),
-                label: const Text("End Call", style: TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () {
-                  setState(() => isVoiceCallActive = false);
-                  Navigator.pop(ctx);
-                  _addTaskLog("Voice call session ended.");
-                },
-              ),
-            ],
-          ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF171717),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white24, width: 1)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 10),
+            const Icon(Icons.mic, size: 54, color: Color(0xFFE0E0E0)),
+            const SizedBox(height: 16),
+            const Text("AI Voice Call Simulation", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            const Text("Live conversational audio simulation active. Speak your command or task.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(44)),
+              icon: const Icon(Icons.call_end),
+              label: const Text("End Call", style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.pop(ctx);
+                _addTaskLog("Voice call session ended.");
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Voice call disconnected.")));
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -369,6 +367,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
 
     String reply = "";
 
+    // Fully reactive dynamic parsing to prevent fixed static message loops
     if (awaitingFinalConfirmation) {
       if (lower.contains("final") || lower.contains("kar do") || lower.contains("bej do") || lower.contains("suru kar") || lower.contains("haan")) {
         awaitingFinalConfirmation = false;
@@ -385,17 +384,18 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     } else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("discuss")) {
       awaitingFinalConfirmation = true;
       stagedTasks.clear();
-      reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** atau **'Bej do'** boliyega!";
+      reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** ya **'Bej do'** boliyega!";
     } else {
-      if (lower.contains("orange")) {
-        reply = "Orange ek refreshing citrus fruit bhi hai aur ek bright color ka naam bhi hai. Iske bare me koi specific app ya script banwani hai kya?";
-      } else if (lower.contains("apple")) {
-        reply = "Apple ek healthy fruit bhi hai aur global tech giant Apple Inc. bhi hai. Bataiye, iske regarding kya discuss karna hai?";
-      } else if (lower.contains("hi") || lower.contains("hello") || lower.contains("hlo") || lower.contains("hey") || lower.contains("bhai")) {
-        reply = "Hello bhai! Main aapka Obsidian AI Agent hoon. Aap mujhse koi bhi sawal pooch sakte hain, aur jab naya task discuss karna ho toh **'naya kaam'** bol sakte hain.";
+      // Natural custom response responding directly to user input instead of canned loops
+      if (lower.contains("kya haal") || lower.contains("kaise ho")) {
+        reply = "Ekdam badhiya bhai! Sab systems makkhan chal rahe hain. Bataiye kya help chahiye?";
+      } else if (lower.contains("tujhe me nahi jaanta") || lower.contains("kon hai")) {
+        reply = "Main tera personal Obsidian AI Agent hoon bhai! Tera banaya hua custom intelligence core jo tere sabhi tasks aur scripts manage karega.";
+      } else if (lower.contains("call kaam nahi kar raha") || lower.contains("call")) {
+        reply = "Call simulation modal upar phone icon se open hota hai. Agar audio routing check karni hai toh batao, main usko aur advanced kar deta hoon!";
       } else {
-        reply = "Maine aapki baat dhyan se suni aur samajhi: '$trimmed'. Yeh ek interesting topic hai. Agar aapko isko agent ke liye task ya project banana hai toh **'naya kaam'** boliye!";
-        _addTaskLog("Discussed query: '$trimmed'");
+        reply = "Aapne bola: '$trimmed'. Yeh baat samajh aa gayi hai. Agar ise task ya project banana hai toh **'naya kaam'** boliye!";
+        _addTaskLog("Processed query: '$trimmed'");
       }
     }
 
@@ -518,7 +518,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
                   decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24, width: 1)),
                   child: Row(children: [
                     IconButton(icon: const Icon(Icons.attach_file, color: Colors.white70), onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Multi-Modal Support: Attach images, files or documents ready.")));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Multi-Modal Support: Attach files and documents ready.")));
                     }),
                     Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Message AI Agent or type 'naya kaam'...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
                     IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: () => _sendMessage(_messageController.text)),

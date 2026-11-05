@@ -6,7 +6,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   bool isAuthorized = false;
   bool isDriveConnected = false;
-  List initialLogs = [];
+  List> initialLogs = [];
   try {
     final prefs = await SharedPreferences.getInstance();
     isAuthorized = prefs.getBool('is_authorized') ?? false;
@@ -25,7 +25,7 @@ void main() async {
 class GodDevenApp extends StatelessWidget {
   final bool isAuthorized;
   final bool isDriveConnected;
-  final List initialLogs;
+  final List> initialLogs;
 
   const GodDevenApp({
     Key? key,
@@ -60,7 +60,7 @@ class GodDevenApp extends StatelessWidget {
 class DevenDashboardScreen extends StatefulWidget {
   final bool initialAuthorized;
   final bool isDriveConnected;
-  final List initialLogs;
+  final List> initialLogs;
 
   const DevenDashboardScreen({
     Key? key,
@@ -79,13 +79,13 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   late bool _isAuthorized;
   late bool _isDriveConnected;
-  late List chatLogs;
+  late List> chatLogs;
 
   String selectedStatRange = "1 Day";
   bool isCloudBusy = false;
   String cloudStatusText = "Deven's Cloud Computer: Idle (Autonomous Skill Mining from YouTube/Reels & Web)";
   
-  List> cloudTasks = [
+  final List> cloudTasks = [
     {"task": "GitHub Auto-Sync & Repo Indexing", "status": "Running"},
     {"task": "YouTube & Instagram Deep Plugin Handlers", "status": "Active"},
     {"task": "VK Social Bridge Initialized", "status": "Connected"},
@@ -97,7 +97,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     super.initState();
     _isAuthorized = widget.initialAuthorized;
     _isDriveConnected = widget.isDriveConnected;
-    chatLogs = List.from(widget.initialLogs);
+    chatLogs = List>.from(widget.initialLogs);
     if (chatLogs.isEmpty) {
       chatLogs.add({
         "sender": "deven",

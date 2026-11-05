@@ -1,44 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   bool isAuthorized = false;
   bool isDriveConnected = false;
-  List initialAsk = [];
+  List initialLogs = [];
   try {
     final prefs = await SharedPreferences.getInstance();
     isAuthorized = prefs.getBool('is_authorized') ?? false;
     isDriveConnected = prefs.getBool('is_drive_connected') ?? false;
-    String? sAsk = prefs.getString('ask_messages');
-    if (sAsk != null && sAsk.isNotEmpty) {
-      var decoded = json.decode(sAsk);
+    String? logsData = prefs.getString('deven_logs');
+    if (logsData != null && logsData.isNotEmpty) {
+      var decoded = json.decode(logsData);
       for (var i in decoded) {
-        initialAsk.add(Map<String, String>.from(i));
+        initialLogs.add(Map<String, String>.from(i));
       }
     }
   } catch (e) {}
-  runApp(GodAgentApp(isAuthorized: isAuthorized, isDriveConnected: isDriveConnected, initialAsk: initialAsk));
+  runApp(GodDevenApp(isAuthorized: isAuthorized, isDriveConnected: isDriveConnected, initialLogs: initialLogs));
 }
 
-class GodAgentApp extends StatelessWidget {
+class GodDevenApp extends StatelessWidget {
   final bool isAuthorized;
   final bool isDriveConnected;
-  final List initialAsk;
+  final List initialLogs;
 
-  const GodAgentApp({
+  const GodDevenApp({
     Key? key,
     required this.isAuthorized,
     required this.isDriveConnected,
-    required this.initialAsk,
+    required this.initialLogs,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Obsidian AI Agent',
+      title: 'God Deven AI Agent',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF000000),
@@ -48,312 +47,211 @@ class GodAgentApp extends StatelessWidget {
           surface: Color(0xFF171717),
         ),
       ),
-      home: MainAgentScreen(
+      home: DevenDashboardScreen(
         initialAuthorized: isAuthorized,
         isDriveConnected: isDriveConnected,
-        initialAsk: initialAsk,
+        initialLogs: initialLogs,
       ),
       debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MainAgentScreen extends StatefulWidget {
+class DevenDashboardScreen extends StatefulWidget {
   final bool initialAuthorized;
   final bool isDriveConnected;
-  final List initialAsk;
+  final List initialLogs;
 
-  const MainAgentScreen({
+  const DevenDashboardScreen({
     Key? key,
     required this.initialAuthorized,
     required this.isDriveConnected,
-    required this.initialAsk,
+    required this.initialLogs,
   }) : super(key: key);
 
   @override
-  State<MainAgentScreen> createState() => _MainAgentScreenState();
+  State<DevenDashboardScreen> createState() => _DevenDashboardScreenState();
 }
 
-class _MainAgentScreenState extends State<MainAgentScreen> {
+class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
   final TextEditingController _passcodeController = TextEditingController();
-  final TextEditingController _messageController = TextEditingController();
-  final TextEditingController _searchTaskController = TextEditingController();
-  
+  final TextEditingController _chatController = TextEditingController();
+
   late bool _isAuthorized;
   late bool _isDriveConnected;
-  late List askMessages;
+  late List chatLogs;
 
-  List stagedTasks = [];
-  bool awaitingFinalConfirmation = false;
-  String taskSearchQuery = "";
-  bool isLiveVoiceActive = false;
-
-  List liveAgentTasks = [
-    {"task": "Obsidian Dark UI Core Initialized.", "status": "Running"},
-    {"task": "Google Drive Encrypted Vault Ready.", "status": "Running"},
-    {"task": "Real-time Voice & Text Pipeline Active.", "status": "Running"},
+  String selectedStatRange = "1 Day";
+  bool isCloudBusy = false;
+  String cloudStatusText = "Deven's Cloud Computer: Idle (Autonomous Skill Mining from YouTube/Reels & Web)";
+  
+  List> cloudTasks = [
+    {"task": "GitHub Auto-Sync & Repo Indexing", "status": "Running"},
+    {"task": "YouTube & Instagram Deep Plugin Handlers", "status": "Active"},
+    {"task": "VK Social Bridge Initialized", "status": "Connected"},
+    {"task": "Autonomous Idle Skill Miner", "status": "Learning Reels/Shorts"}
   ];
-
-  Map metrics = {
-    "thinking": "Live audio-text streaming pipeline synchronized.",
-    "learned": "Zero fixed loops; fully dynamic prompt evaluation active.",
-    "problems": "None. All security and voice handlers operating cleanly."
-  };
-
-  final String driveAuthUrl = "https://accounts.google.com/o/oauth2/v2/auth";
 
   @override
   void initState() {
     super.initState();
     _isAuthorized = widget.initialAuthorized;
     _isDriveConnected = widget.isDriveConnected;
-    askMessages = List.from(widget.initialAsk);
-    if (_isAuthorized && !_isDriveConnected) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showGoogleDriveDialog());
+    chatLogs = List.from(widget.initialLogs);
+    if (chatLogs.isEmpty) {
+      chatLogs.add({
+        "sender": "deven",
+        "text": "Namaste! Main hoon God Deven (Nickname: Deven). Aapka Cloud Computer aur Universal Plugins (GitHub, YouTube, Instagram, VK) fully active hain."
+      });
     }
   }
 
-  Future<void> _saveChatHistories() async {
+  Future<void> _saveLogs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('ask_messages', json.encode(askMessages));
+      await prefs.setString('deven_logs', json.encode(chatLogs));
     } catch (e) {}
   }
 
-  void _addTaskLog(String taskName) {
-    setState(() {
-      liveAgentTasks.insert(0, {"task": taskName, "status": "Running"});
-      if (liveAgentTasks.length > 50) liveAgentTasks.removeLast();
-    });
+  void _verifyPasscode() {
+    if (_passcodeController.text.trim() == "74882242959122690239") {
+      SharedPreferences.getInstance().then((p) => p.setBool('is_authorized', true));
+      setState(() => _isAuthorized = true);
+      _passcodeController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("God Deven Console Unlocked Successfully!")));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incorrect Passcode!")));
+    }
   }
 
-  void _toggleTaskPause(int index) {
+  void _sendDevenMessage(String text) async {
+    if (text.trim().isEmpty) return;
+    String query = text.trim();
     setState(() {
-      String st = liveAgentTasks[index]["status"].toString();
-      liveAgentTasks[index]["status"] = st == "Running" ? "Paused" : "Running";
+      chatLogs.add({"sender": "user", "text": query});
+      _chatController.clear();
     });
+    await _saveLogs();
+
+    String reply = "";
+    String lower = query.toLowerCase();
+
+    if (lower.contains("cloud") || lower.contains("computer") || lower.contains("screen")) {
+      reply = "🖥️ **Cloud Computer Status:** Deven is currently executing background scripts. Live viewer & manual access panel is open in the drawer!";
+    } else if (lower.contains("plugin") || lower.contains("connect") || lower.contains("github") || lower.contains("youtube")) {
+      reply = "🔌 **Universal Plugins Active:** GitHub, YouTube, Instagram, and VK connectors are synchronized at deep protocol level.";
+    } else {
+      reply = "⚡ **Deven Core Processed:** '$query'. Background agent is evaluating execution parameters across connected platforms.";
+    }
+
+    setState(() {
+      chatLogs.add({"sender": "deven", "text": reply});
+    });
+    await _saveLogs();
   }
 
-  void _removeTask(int index) {
-    setState(() {
-      liveAgentTasks.removeAt(index);
-    });
-  }
-
-  void _showGoogleDriveDialog() {
+  void _showCloudComputerModal() {
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF212121),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24, width: 1)),
-        title: const Row(children: [
-          Icon(Icons.cloud, color: Colors.white),
-          SizedBox(width: 10),
-          Text("Connect Google Drive Vault", style: TextStyle(fontSize: 16, color: Colors.white))
-        ]),
-        content: const Text("Authenticate securely via browser OAuth to sync your encrypted credentials, usernames, and passwords directly to your Google Drive folder.", style: TextStyle(color: Colors.white70, fontSize: 14)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Later", style: TextStyle(color: Colors.white54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE0E0E0), foregroundColor: Colors.black),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                final uri = Uri.parse(driveAuthUrl);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                }
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.setBool('is_drive_connected', true);
-                setState(() => _isDriveConnected = true);
-                _addTaskLog("Google Drive OAuth session authorized.");
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Connected Successfully!")));
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not launch browser OAuth.")));
-                }
-              }
-            },
-            child: const Text("Authorize & Connect", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showVoiceCallModal() {
-    setState(() => isLiveVoiceActive = true);
-    showDialog(
-      context: context,
-      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setVoiceState) => AlertDialog(
+        builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF171717),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: const BorderSide(color: Colors.white24, width: 1)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              const Icon(Icons.mic, size: 54, color: Color(0xFFE0E0E0)),
-              const SizedBox(height: 16),
-              const Text("Live AI Voice Call Active", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              const Text("YouTube style live conversational voice streaming session is active. Speak freely...", textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white, minimumSize: const Size.fromHeight(44)),
-                icon: const Icon(Icons.call_end),
-                label: const Text("Disconnect Call", style: TextStyle(fontWeight: FontWeight.bold)),
-                onPressed: () {
-                  setState(() => isLiveVoiceActive = false);
-                  Navigator.pop(ctx);
-                  _addTaskLog("Live voice call session terminated.");
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Voice call ended.")));
-                  }
-                },
-              ),
-            ],
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24, width: 1)),
+          title: const Row(children: [
+            Icon(Icons.computer, color: Colors.white),
+            SizedBox(width: 10),
+            Text("Deven Cloud Computer", style: TextStyle(fontSize: 15, color: Colors.white))
+          ]),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 280,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF000000), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                  child: Text(cloudStatusText, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                ),
+                const SizedBox(height: 12),
+                const Text("Active Background Tasks:", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: cloudTasks.length,
+                    itemBuilder: (context, index) {
+                      final t = cloudTasks[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(vertical: 4),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: const Color(0xFF212121), borderRadius: BorderRadius.circular(6)),
+                        child: Row(children: [
+                          Expanded(child: Text(t["task"]!, style: const TextStyle(color: Colors.white, fontSize: 12))),
+                          Text(t["status"]!, style: const TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ]),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                setModalState(() {
+                  isCloudBusy = true;
+                  cloudStatusText = "Deven: 'Wait! Currently processing critical block. Manual access requested.'";
+                });
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access requested. Deven is holding state safely.")));
+              },
+              child: const Text("Request Manual Access", style: TextStyle(color: Colors.orangeAccent)),
+            ),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close", style: TextStyle(color: Colors.white70))),
+          ],
         ),
       ),
     );
   }
 
-  Future<void> _disconnectDrive() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_drive_connected', false);
-      setState(() => _isDriveConnected = false);
-      _addTaskLog("Google Drive disconnected.");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Google Drive Disconnected!")));
-      }
-    } catch (e) {}
-  }
-
-  Future<void> _relockConsole() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('is_authorized', false);
-      setState(() => _isAuthorized = false);
-      _addTaskLog("Console relocked.");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Relocked.")));
-      }
-    } catch (e) {}
-  }
-
-  Future<void> _verifyPasscode() async {
-    if (_passcodeController.text.trim() == "74882242959122690239") {
-      try { (await SharedPreferences.getInstance()).setBool('is_authorized', true); } catch (e) {}
-      setState(() => _isAuthorized = true);
-      _passcodeController.clear();
-      _addTaskLog("Console unlocked securely.");
-      if (!_isDriveConnected) _showGoogleDriveDialog();
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incorrect Passcode!")));
-      }
-    }
-  }
-
-  void _showMetricDetailDialog(String title, String content, IconData icon, Color color) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF212121),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color, width: 1)),
-        title: Row(children: [Icon(icon, color: color), const SizedBox(width: 10), Text(title, style: const TextStyle(fontSize: 16, color: Colors.white))]),
-        content: Text(content.isNotEmpty ? content : "No telemetry data recorded yet.", style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: Text("Close", style: TextStyle(color: color)))],
-      ),
-    );
-  }
-
-  void _showLiveActivityModal() {
+  void _showStatsModal() {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (c, setStateModal) => AlertDialog(
-          backgroundColor: const Color(0xFF212121),
+        builder: (context, setStatState) => AlertDialog(
+          backgroundColor: const Color(0xFF171717),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24, width: 1)),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: const Text("Deven Execution Stats", style: TextStyle(fontSize: 16, color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(children: const [Icon(Icons.monitor_heart, color: Colors.white), SizedBox(width: 10), Text("Live Activity & Task Search", style: TextStyle(fontSize: 15, color: Colors.white))]),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _searchTaskController,
-                style: const TextStyle(color: Colors.white, fontSize: 13),
-                decoration: InputDecoration(
-                  hintText: "Search tasks or activities...",
-                  hintStyle: const TextStyle(color: Colors.white38),
-                  prefixIcon: const Icon(Icons.search, color: Colors.white70, size: 18),
-                  filled: true,
-                  fillColor: const Color(0xFF171717),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                ),
-                onChanged: (val) {
-                  setStateModal(() { taskSearchQuery = val.toLowerCase(); });
-                },
+              Wrap(
+                spacing: 6,
+                children: ["1 Day", "1 Week", "1 Month", "3 Months", "6 Months", "1 Year"].map((range) {
+                  bool isSelected = selectedStatRange == range;
+                  return ChoiceChip(
+                    label: Text(range, style: TextStyle(color: isSelected ? Colors.black : Colors.white, fontSize: 11)),
+                    selected: isSelected,
+                    selectedColor: const Color(0xFFE0E0E0),
+                    backgroundColor: const Color(0xFF212121),
+                    onSelected: (val) {
+                      setStatState(() => selectedStatRange = range);
+                      setState(() => selectedStatRange = range);
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: const Color(0xFF000000), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text("Stats Range: $selectedStatRange", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 6),
+                  const Text("• Tasks Executed: 1,420\n• Autonomous Skills Learned: 88\n• GitHub/YouTube/VK Syncs: Optimal\n• System Stability: 99.9%", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                ]),
               ),
             ],
-          ),
-          content: SizedBox(
-            width: double.maxFinite, height: 260,
-            child: Builder(
-              builder: (context) {
-                final filteredTasks = liveAgentTasks.where((item) {
-                  return item["task"].toString().toLowerCase().contains(taskSearchQuery);
-                }).toList();
-
-                if (filteredTasks.isEmpty) {
-                  return const Center(child: Text("No matching tasks found.", style: TextStyle(color: Colors.white54, fontSize: 13)));
-                }
-
-                return ListView.builder(
-                  itemCount: filteredTasks.length,
-                  itemBuilder: (context, index) {
-                    final item = filteredTasks[index];
-                    bool isRunning = item["status"] == "Running";
-                    int realIndex = liveAgentTasks.indexOf(item);
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 4), padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
-                      child: Row(children: [
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text(item["task"].toString(), style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                          const SizedBox(height: 2),
-                          Text("Status: ${item["status"]}", style: TextStyle(color: isRunning ? Colors.white : Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
-                        ])),
-                        IconButton(
-                          icon: Icon(isRunning ? Icons.pause_circle_filled : Icons.play_circle_fill, color: isRunning ? Colors.orangeAccent : Colors.white),
-                          onPressed: () {
-                            setStateModal(() { _toggleTaskPause(realIndex); });
-                            setState(() {});
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.redAccent, size: 20),
-                          onPressed: () {
-                            setStateModal(() { _removeTask(realIndex); });
-                            setState(() {});
-                          },
-                        )
-                      ]),
-                    );
-                  },
-                );
-              },
-            ),
           ),
           actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close", style: TextStyle(color: Colors.white70)))],
         ),
@@ -361,57 +259,15 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
     );
   }
 
-  Future<void> _sendMessage(String text) async {
-    if (text.trim().isEmpty) return;
-    String trimmed = text.trim();
-    String lower = trimmed.toLowerCase();
-    setState(() { 
-      askMessages.add({"sender": "user", "text": trimmed}); 
-      _messageController.clear(); 
-    });
-    await _saveChatHistories();
-
-    String reply = "";
-
-    // Fully dynamic context evaluator (No static hardcoded loops)
-    if (awaitingFinalConfirmation) {
-      if (lower.contains("final") || lower.contains("kar do") || lower.contains("bej do") || lower.contains("suru kar") || lower.contains("haan")) {
-        awaitingFinalConfirmation = false;
-        String allTasksSummary = stagedTasks.join(", ");
-        stagedTasks.clear();
-        reply = "🚀 **Task Staging Finalized!** Saare tasks [$allTasksSummary] successfully agent core ko dispatch kar diye gaye hain. Background execution shuru ho raha hai.";
-        _addTaskLog("Executed task stack: $allTasksSummary");
-      } else if (lower.contains("hata") || lower.contains("remove")) {
-        reply = "Theek hai bhai, kaun sa task hatana hai uska naam batayiye? Current staged tasks: ${stagedTasks.join(', ')}";
-      } else {
-        stagedTasks.add(trimmed);
-        reply = "📝 Maine aapki baat note kar li hai. Total staged tasks: [${stagedTasks.join(', ')}]. Kya isme kuch aur add karna hai, ya ab main **'Final kar do'** bolun?";
-      }
-    } else if (lower.contains("naya kaam") || lower.contains("new task") || lower.contains("task dena hai") || lower.contains("discuss")) {
-      awaitingFinalConfirmation = true;
-      stagedTasks.clear();
-      reply = "🎯 Theek hai bhai! Pehle hum aaram se discuss kar lete hain. Aap apne points ya tasks ek-ek karke batayiye, aur jab sab kuch final ho jaye tab **'Final kar do'** ya **'Bej do'** boliyega!";
-    } else {
-      reply = "Aapne query di: '$trimmed'. Ye samajh aa gayi hai. Agar ise task ya background project banana hai toh **'naya kaam'** boliye!";
-      _addTaskLog("Evaluated input: '$trimmed'");
-    }
-
-    setState(() {
-      askMessages.add({"sender": "agent", "text": reply});
-    });
-    await _saveChatHistories();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF171717),
-        elevation: 0,
-        title: const Text("Obsidian AI Agent", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("God Deven (Deven)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(icon: const Icon(Icons.phone_in_talk, color: Colors.white70), tooltip: "Live Voice Call Mode", onPressed: _showVoiceCallModal),
-          IconButton(icon: const Icon(Icons.monitor_heart, color: Colors.white70), tooltip: "Live Activity & Search", onPressed: _showLiveActivityModal),
+          IconButton(icon: const Icon(Icons.computer, color: Colors.white70), tooltip: "Cloud Computer Live", onPressed: _showCloudComputerModal),
+          IconButton(icon: const Icon(Icons.analytics, color: Colors.white70), tooltip: "Stats Dashboard", onPressed: _showStatsModal),
         ],
       ),
       drawer: Drawer(
@@ -422,63 +278,27 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
               Icon(Icons.psychology, color: Colors.white, size: 32),
               SizedBox(height: 8),
-              Text('🧠 Obsidian AI Agent', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('God Deven (Deven)', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              Text('Universal Plugin & Cloud Agent', style: TextStyle(color: Colors.white54, fontSize: 11)),
             ]),
           ),
           ListTile(
-            leading: const Icon(Icons.phone_in_talk, color: Colors.white70),
-            title: const Text('Live Voice Call Simulation'),
-            subtitle: const Text('Start YouTube style conversational voice chat', style: TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _showVoiceCallModal(); },
+            leading: const Icon(Icons.computer, color: Colors.white70),
+            title: const Text('Cloud Computer Live Viewer'),
+            onTap: () { Navigator.pop(context); _showCloudComputerModal(); },
           ),
-          const Divider(color: Colors.white24),
           ListTile(
-            leading: const Icon(Icons.monitor_heart, color: Colors.white70),
-            title: const Text('Live Activity & Search'),
-            subtitle: const Text('Monitor, search, pause & remove tasks', style: TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _showLiveActivityModal(); },
+            leading: const Icon(Icons.analytics, color: Colors.white70),
+            title: const Text('Stats (1 Year to 1 Day)'),
+            onTap: () { Navigator.pop(context); _showStatsModal(); },
           ),
-          const Divider(color: Colors.white24),
           ListTile(
-            leading: const Icon(Icons.cloud, color: Colors.white70),
-            title: const Text('Google Drive Vault'),
-            subtitle: Text(_isDriveConnected ? "Connected Successfully" : "Click to Sync Drive", style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _showGoogleDriveDialog(); },
-          ),
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.psychology, color: Colors.white70),
-            title: const Text('1. AI Thinking Process'),
-            subtitle: Text(metrics["thinking"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Thinking Process", metrics["thinking"].toString(), Icons.psychology, Colors.white70),
-          ),
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.book, color: Colors.white70),
-            title: const Text('2. AI Learning Logs'),
-            subtitle: Text(metrics["learned"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Learning Logs", metrics["learned"].toString(), Icons.book, Colors.white70),
-          ),
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.warning, color: Colors.white70),
-            title: const Text('3. AI Error Tracker'),
-            subtitle: Text(metrics["problems"].toString(), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () => _showMetricDetailDialog("AI Agent Error Tracker", metrics["problems"].toString(), Icons.warning, Colors.white70),
-          ),
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.cloud_off, color: Colors.white70),
-            title: const Text('Disconnect Google Drive'),
-            subtitle: const Text('Revoke sync session', style: TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _disconnectDrive(); },
-          ),
-          const Divider(color: Colors.white24),
-          ListTile(
-            leading: const Icon(Icons.lock, color: Colors.white70),
-            title: const Text('Relock Console'),
-            subtitle: const Text('Secure and lock session', style: TextStyle(color: Colors.white70, fontSize: 11)),
-            onTap: () { Navigator.pop(context); _relockConsole(); },
+            leading: const Icon(Icons.bolt, color: Colors.white70),
+            title: const Text('Universal Plugins (GitHub, YT, IG, VK)'),
+            onTap: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("All deep plugin connectors active.")));
+            },
           ),
         ]),
       ),
@@ -486,7 +306,7 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
           ? Center(child: Padding(padding: const EdgeInsets.all(24.0), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               const Icon(Icons.lock_outline, size: 64, color: Colors.white),
               const SizedBox(height: 16),
-              const Text("Enter Secure Console Passcode", style: TextStyle(color: Colors.white70, fontSize: 14), textAlign: TextAlign.center),
+              const Text("Enter God Deven Secure Passcode", style: TextStyle(color: Colors.white70, fontSize: 14)),
               const SizedBox(height: 20),
               TextField(controller: _passcodeController, obscureText: true, decoration: const InputDecoration(border: OutlineInputBorder(), hintText: "Passcode...")),
               const SizedBox(height: 16),
@@ -494,33 +314,29 @@ class _MainAgentScreenState extends State<MainAgentScreen> {
             ])))
           : Column(children: [
               Expanded(child: ListView.builder(
-                padding: const EdgeInsets.all(12), itemCount: askMessages.length,
+                padding: const EdgeInsets.all(12),
+                itemCount: chatLogs.length,
                 itemBuilder: (context, index) {
-                  final m = askMessages[index];
-                  final isUser = m["sender"] == "user";
+                  final m = chatLogs[index];
+                  bool isUser = m["sender"] == "user";
                   return Align(
                     alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                     child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 6), padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(color: isUser ? const Color(0xFF2E2E2E) : const Color(0xFF171717), borderRadius: BorderRadius.circular(12)),
-                      child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 15)),
+                      child: Text(m["text"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 14)),
                     ),
                   );
                 },
               )),
               SafeArea(child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), color: const Color(0xFF000000),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFF171717), borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white24, width: 1)),
-                  child: Row(children: [
-                    IconButton(icon: const Icon(Icons.attach_file, color: Colors.white70), onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Multi-Modal Support: Images, documents, and files attached.")));
-                    }),
-                    Expanded(child: TextField(controller: _messageController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Message AI Agent or type 'naya kaam'...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
-                    IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: () => _sendMessage(_messageController.text)),
-                  ]),
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                color: const Color(0xFF000000),
+                child: Row(children: [
+                  Expanded(child: TextField(controller: _chatController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Message God Deven...", hintStyle: TextStyle(color: Colors.white38), border: InputBorder.none))),
+                  IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: () => _sendDevenMessage(_chatController.text)),
+                ]),
               )),
             ]),
     );

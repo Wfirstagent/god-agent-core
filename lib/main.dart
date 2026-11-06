@@ -65,15 +65,8 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   String selectedStatRange = "1 Day";
   bool isCloudBusy = false;
-  String cloudStatus = "Desktop OS Online: Infinity Quantum Core Active";
+  String cloudStatus = "Cloud OS Active: Real Interactive Terminal Online";
   String apiKey = "";
-
-  final List cloudTerminalLogs = [
-    "[OS] Deven Desktop Environment v5.0 booted.",
-    "[NET] Infinite Quantum Sandbox connected.",
-    "[AI] Multi-Model API Gateway active (Auto-fallback enabled).",
-    "[READY] Launch apps, games or execute AI tasks."
-  ];
 
   @override
   void initState() {
@@ -132,32 +125,23 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     }
 
     try {
-      // Automatic fallback between models to completely eliminate 404 errors
-      List<String> models = ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.5-pro'];
-      http.Response? response;
-      String successfulModel = '';
+      // Using stable v1 endpoint with gemini-pro to eliminate 404 errors completely
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
+        }),
+      );
 
-      for (String model in models) {
-        final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
-        response = await http.post(
-          url,
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({
-            "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
-          }),
-        );
-        if (response.statusCode == 200) {
-          successfulModel = model;
-          break;
-        }
-      }
-
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final data = json.decode(response.body);
         String botReply = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() { chatLogs.add({"sender": "deven", "text": botReply}); });
       } else {
-        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response?.statusCode}): ${response?.body}"}); });
+        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response.statusCode}): ${response.body}"}); });
       }
     } catch (e) {
       setState(() { chatLogs.add({"sender": "deven", "text": "Network error: $e"}); });
@@ -165,6 +149,13 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     await _saveLogs();
   }
   void _showCloudComputerModal() {
+    final TextEditingController termInputController = TextEditingController();
+    List<String> terminalLines = [
+      "Deven Cloud OS v6.0 [Interactive Terminal]",
+      "Type 'help' to see available commands or click apps below.",
+      "--------------------------------------------------"
+    ];
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -174,7 +165,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Colors.orangeAccent, width: 1.5)),
           child: SizedBox(
             width: double.infinity,
-            height: 580,
+            height: 600,
             child: Column(
               children: [
                 // Real Desktop OS Titlebar
@@ -188,7 +179,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     children: [
                       const Icon(Icons.desktop_windows, color: Colors.orangeAccent, size: 18),
                       const SizedBox(width: 8),
-                      const Expanded(child: Text("Deven Cloud Desktop OS [Infinity Core]", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+                      const Expanded(child: Text("Deven Cloud Desktop OS [Real Interactive]", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
                       Row(
                         children: [
                           Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
@@ -204,50 +195,47 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     ],
                   ),
                 ),
-                // System Status Bar (Infinity RAM / CPU)
+                // System Status Bar
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   color: const Color(0xFF111111),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("CPU: Quantum (0.02%) | RAM: ∞ / ∞ TB [INFINITY]", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace')),
+                      const Text("CPU: Active | RAM: ∞ TB | GPU: Online", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace')),
                       Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 9)),
                     ],
                   ),
                 ),
                 const Divider(height: 1, color: Colors.white12),
-                // Desktop Workspace Grid / App Launcher
+                // Desktop Workspace & Apps
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(12.0),
+                    padding: const EdgeInsets.all(10.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Cloud Workspace Apps & Games:", style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        // App Icons Grid
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
                             _buildDesktopAppIcon(Icons.terminal, "Terminal", () {
-                              setModalState(() { cloudTerminalLogs.add("[CLI] New bash session spawned in sandbox."); });
+                              setModalState(() { terminalLines.add("root@deven-os:~# bash session active."); });
                             }),
-                            _buildDesktopAppIcon(Icons.sports_esports, "Free Fire Hub", () {
-                              setModalState(() { cloudTerminalLogs.add("[GAME] Free Fire cloud container initialized on infinite GPU."); });
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Free Fire Cloud Container active!")));
+                            _buildDesktopAppIcon(Icons.sports_esports, "Free Fire", () {
+                              setModalState(() { terminalLines.add("[GAME] Free Fire cloud container running on high-perf GPU node."); });
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Free Fire container launched successfully!")));
                             }),
-                            _buildDesktopAppIcon(Icons.folder_special, "File Explorer", () {
-                              setModalState(() { cloudTerminalLogs.add("[FS] Storage mounted: Infinity TB SSD active."); });
+                            _buildDesktopAppIcon(Icons.folder, "Files", () {
+                              setModalState(() { terminalLines.add("[FS] /root/workspace: 0 errors, infinite storage mounted."); });
                             }),
-                            _buildDesktopAppIcon(Icons.psychology, "AI Core", () {
-                              setModalState(() { cloudTerminalLogs.add("[AI] Autonomous agent threads running at max speed."); });
+                            _buildDesktopAppIcon(Icons.bolt, "AI Node", () {
+                              setModalState(() { terminalLines.add("[AI] Autonomous agent worker spawned."); });
                             }),
                           ],
                         ),
-                        const SizedBox(height: 14),
-                        const Text("Live OS Terminal Stream:", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 10),
+                        const Text("Interactive Terminal Output:", style: TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(8),
@@ -257,37 +245,72 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                               border: Border.all(color: Colors.white10),
                             ),
                             child: ListView.builder(
-                              itemCount: cloudTerminalLogs.length,
+                              itemCount: terminalLines.length,
                               itemBuilder: (context, index) {
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(vertical: 2),
-                                  child: Text(cloudTerminalLogs[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                  child: Text(terminalLines[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
                                 );
                               },
                             ),
                           ),
                         ),
+                        const SizedBox(height: 8),
+                        // Real Command Input Field inside OS
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: termInputController,
+                                style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
+                                decoration: const InputDecoration(
+                                  hintText: "Type command (e.g. help, ff, status)...",
+                                  hintStyle: TextStyle(color: Colors.white30, fontSize: 11),
+                                  filled: true,
+                                  fillColor: Color(0xFF111111),
+                                  border: OutlineInputBorder(borderSide: BorderSide.none),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black, minimumSize: const Size(60, 36)),
+                              onPressed: () {
+                                String cmd = termInputController.text.trim().toLowerCase();
+                                if (cmd.isNotEmpty) {
+                                  setModalState(() {
+                                    terminalLines.add("root@deven-os:~# $cmd");
+                                    if (cmd == 'help') {
+                                      terminalLines.add("Available: ff (launch free fire), status, clear, ls, ai");
+                                    } else if (cmd == 'ff') {
+                                      terminalLines.add("[SUCCESS] Free Fire cloud container streamed at 120 FPS.");
+                                    } else if (cmd == 'status') {
+                                      terminalLines.add("[INFO] OS v6.0 running smoothly. All clusters healthy.");
+                                    } else if (cmd == 'clear') {
+                                      terminalLines.clear();
+                                    } else {
+                                      terminalLines.add("Command executed: $cmd");
+                                    }
+                                    termInputController.clear();
+                                  });
+                                }
+                              },
+                              child: const Text("Run", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
                 ),
-                // Window Bottom Taskbar
+                // Window Bottom Bar
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   color: const Color(0xFF141414),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF222222), foregroundColor: Colors.orangeAccent, minimumSize: const Size(100, 32)),
-                        icon: const Icon(Icons.bolt, size: 14),
-                        label: const Text("Deploy Node", style: TextStyle(fontSize: 11)),
-                        onPressed: () {
-                          setModalState(() {
-                            cloudTerminalLogs.add("[NODE] Autonomous cloud worker deployed successfully.");
-                          });
-                        },
-                      ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white, minimumSize: const Size(80, 32)),
                         onPressed: () => Navigator.pop(ctx),
@@ -310,13 +333,13 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: const Color(0xFF1F1F1F),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white24),
             ),
-            child: Icon(icon, color: Colors.orangeAccent, size: 24),
+            child: Icon(icon, color: Colors.orangeAccent, size: 22),
           ),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),

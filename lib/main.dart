@@ -70,7 +70,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   final List cloudTerminalLogs = [
     "[OS] Deven Desktop Window initialized (Obsidian Core).",
-    "[AI] Gemini 1.5 Flash bridge connected successfully.",
+    "[AI] Gemini bridge connected successfully.",
     "[TASK] Monitoring GitHub Actions & background skill-mining...",
     "[READY] Window interface active for user tasks."
   ];
@@ -83,14 +83,14 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     chatLogs = List.from(widget.initialLogs);
     _loadApiKey();
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni valid Gemini API key (AIza... se shuru hone wali) paste karo."});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Apni AQ... wali key settings me daal aur task shuru kar!"});
     }
   }
 
   Future<void> _loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key'] ?? '';
+      apiKey = prefs.getString('gemini_api_key') ?? '';
       _apiKeyController.text = apiKey;
     });
   }
@@ -99,7 +99,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('gemini_api_key', key.trim());
     setState(() { apiKey = key.trim(); });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gemini API Key saved successfully!')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('API Key saved successfully!')));
   }
 
   Future<void> _saveLogs() async {
@@ -110,7 +110,6 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
   }
 
   void _verifyPasscode() {
-    // Old secure passcode restored
     if (_passcodeController.text.trim() == "7468224295912980230" || _passcodeController.text.trim() == "1234") {
       SharedPreferences.getInstance().then((prefs) { prefs.setBool('is_authorized', true); });
       setState(() { _isAuthorized = true; });
@@ -127,13 +126,15 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     await _saveLogs();
 
     if (apiKey.isEmpty) {
-      setState(() { chatLogs.add({"sender": "deven", "text": "Bhai, pehle Settings me apni valid Gemini API key save karo!"}); });
+      setState(() { chatLogs.add({"sender": "deven", "text": "Bhai, pehle Settings me apni API key save kar!"}); });
       await _saveLogs();
       return;
     }
 
     try {
+      // AQ and AIza keys both work directly with the query parameter endpoint
       final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
@@ -291,7 +292,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Gemini API Key (AIza...):", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text("Gemini API Key (AQ...):", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 8),
             TextField(
               controller: _apiKeyController,

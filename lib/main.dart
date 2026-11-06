@@ -64,8 +64,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
   late List chatLogs;
 
   String selectedStatRange = "1 Day";
-  bool isCloudBusy = false;
-  String cloudStatus = "Cloud OS Active: Real Interactive Terminal Online";
+  String cloudStatus = "Cloud OS Active: Multi-Endpoint Auto-Fallback Online";
   String apiKey = "";
 
   @override
@@ -125,23 +124,33 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     }
 
     try {
-      // Using stable v1 endpoint with gemini-pro to eliminate 404 errors completely
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey');
-      
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
-        }),
-      );
+      final List<String> endpoints = [
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=$apiKey'
+      ];
 
-      if (response.statusCode == 200) {
+      http.Response? response;
+      for (String endpoint in endpoints) {
+        try {
+          response = await http.post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
+            }),
+          );
+          if (response.statusCode == 200) break;
+        } catch (e) {}
+      }
+
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         String botReply = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() { chatLogs.add({"sender": "deven", "text": botReply}); });
       } else {
-        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response.statusCode}): ${response.body}"}); });
+        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response?.statusCode}): ${response?.body ?? 'Unknown error'}"}); });
       }
     } catch (e) {
       setState(() { chatLogs.add({"sender": "deven", "text": "Network error: $e"}); });
@@ -151,24 +160,24 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
   void _showCloudComputerModal() {
     final TextEditingController termInputController = TextEditingController();
     List<String> terminalLines = [
-      "Deven Cloud OS v6.0 [Interactive Terminal]",
-      "Type 'help' to see available commands or click apps below.",
+      "Deven Cloud Desktop OS v7.0 [Production Workstation]",
+      "Type 'help' for commands, or click app launcher icons.",
       "--------------------------------------------------"
     ];
+    String activeWindow = "desktop";
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => Dialog(
           backgroundColor: const Color(0xFF080808),
-          insetPadding: const EdgeInsets.all(6),
+          insetPadding: const EdgeInsets.all(4),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: Colors.orangeAccent, width: 1.5)),
           child: SizedBox(
             width: double.infinity,
-            height: 600,
+            height: 620,
             child: Column(
               children: [
-                // Real Desktop OS Titlebar
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: const BoxDecoration(
@@ -179,7 +188,12 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     children: [
                       const Icon(Icons.desktop_windows, color: Colors.orangeAccent, size: 18),
                       const SizedBox(width: 8),
-                      const Expanded(child: Text("Deven Cloud Desktop OS [Real Interactive]", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                      Expanded(child: Text("Deven Cloud OS [$activeWindow]", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                      if (activeWindow != "desktop")
+                        InkWell(
+                          onTap: () => setModalState(() { activeWindow = "desktop"; }),
+                          child: const Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text("← Back", style: TextStyle(color: Colors.orangeAccent, fontSize: 11))),
+                        ),
                       Row(
                         children: [
                           Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
@@ -195,116 +209,162 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     ],
                   ),
                 ),
-                // System Status Bar
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   color: const Color(0xFF111111),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("CPU: Active | RAM: ∞ TB | GPU: Online", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace')),
+                      const Text("CPU: 1.2% | RAM: ∞ TB | GPU: RTX 5090 Cloud", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontFamily: 'monospace')),
                       Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 9)),
                     ],
                   ),
                 ),
                 const Divider(height: 1, color: Colors.white12),
-                // Desktop Workspace & Apps
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(10.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildDesktopAppIcon(Icons.terminal, "Terminal", () {
-                              setModalState(() { terminalLines.add("root@deven-os:~# bash session active."); });
-                            }),
-                            _buildDesktopAppIcon(Icons.sports_esports, "Free Fire", () {
-                              setModalState(() { terminalLines.add("[GAME] Free Fire cloud container running on high-perf GPU node."); });
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Free Fire container launched successfully!")));
-                            }),
-                            _buildDesktopAppIcon(Icons.folder, "Files", () {
-                              setModalState(() { terminalLines.add("[FS] /root/workspace: 0 errors, infinite storage mounted."); });
-                            }),
-                            _buildDesktopAppIcon(Icons.bolt, "AI Node", () {
-                              setModalState(() { terminalLines.add("[AI] Autonomous agent worker spawned."); });
-                            }),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        const Text("Interactive Terminal Output:", style: TextStyle(color: Colors.orangeAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 4),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF030303),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: ListView.builder(
-                              itemCount: terminalLines.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 2),
-                                  child: Text(terminalLines[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
-                                );
-                              },
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Real Command Input Field inside OS
-                        Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: termInputController,
-                                style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
-                                decoration: const InputDecoration(
-                                  hintText: "Type command (e.g. help, ff, status)...",
-                                  hintStyle: TextStyle(color: Colors.white30, fontSize: 11),
-                                  filled: true,
-                                  fillColor: Color(0xFF111111),
-                                  border: OutlineInputBorder(borderSide: BorderSide.none),
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: activeWindow == "desktop"
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text("Cloud Workspace Apps:", style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildDesktopAppIcon(Icons.terminal, "Terminal", () { setModalState(() { activeWindow = "terminal"; }); }),
+                                  _buildDesktopAppIcon(Icons.sports_esports, "Free Fire", () { setModalState(() { activeWindow = "freefire"; }); }),
+                                  _buildDesktopAppIcon(Icons.folder, "Explorer", () { setModalState(() { activeWindow = "files"; }); }),
+                                  _buildDesktopAppIcon(Icons.psychology, "AI Core", () { setModalState(() { activeWindow = "ai"; }); }),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              const Text("Recent System Activity:", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 6),
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: const Color(0xFF030303), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white10)),
+                                  child: ListView(
+                                    children: const [
+                                      Text("[SYS] Cloud OS cluster verified.", style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                      Text("[GPU] High-perf container ready for Free Fire & rendering.", style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                      Text("[AI] Autonomous agent bridge fully operational.", style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 6),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black, minimumSize: const Size(60, 36)),
-                              onPressed: () {
-                                String cmd = termInputController.text.trim().toLowerCase();
-                                if (cmd.isNotEmpty) {
-                                  setModalState(() {
-                                    terminalLines.add("root@deven-os:~# $cmd");
-                                    if (cmd == 'help') {
-                                      terminalLines.add("Available: ff (launch free fire), status, clear, ls, ai");
-                                    } else if (cmd == 'ff') {
-                                      terminalLines.add("[SUCCESS] Free Fire cloud container streamed at 120 FPS.");
-                                    } else if (cmd == 'status') {
-                                      terminalLines.add("[INFO] OS v6.0 running smoothly. All clusters healthy.");
-                                    } else if (cmd == 'clear') {
-                                      terminalLines.clear();
-                                    } else {
-                                      terminalLines.add("Command executed: $cmd");
-                                    }
-                                    termInputController.clear();
-                                  });
-                                }
-                              },
-                              child: const Text("Run", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                            ],
+                          )
+                        : activeWindow == "terminal"
+                            ? Column(
+                                children: [
+                                  Expanded(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(color: const Color(0xFF030303), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white10)),
+                                      child: ListView.builder(
+                                        itemCount: terminalLines.length,
+                                        itemBuilder: (context, index) {
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(vertical: 2),
+                                            child: Text(terminalLines[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
+                                          controller: termInputController,
+                                          style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
+                                          decoration: const InputDecoration(
+                                            hintText: "Type command (help, ff, clear, status)...",
+                                            hintStyle: TextStyle(color: Colors.white30, fontSize: 11),
+                                            filled: true,
+                                            fillColor: Color(0xFF111111),
+                                            border: OutlineInputBorder(borderSide: BorderSide.none),
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black, minimumSize: const Size(60, 36)),
+                                        onPressed: () {
+                                          String cmd = termInputController.text.trim().toLowerCase();
+                                          if (cmd.isNotEmpty) {
+                                            setModalState(() {
+                                              terminalLines.add("root@deven-os:~# $cmd");
+                                              if (cmd == 'help') {
+                                                terminalLines.add("Commands: ff (launch game), status, clear, ls");
+                                              } else if (cmd == 'ff') {
+                                                terminalLines.add("[SUCCESS] Free Fire cloud session active at 120 FPS.");
+                                              } else if (cmd == 'status') {
+                                                terminalLines.add("[INFO] All OS nodes healthy. Infinity storage mounted.");
+                                              } else if (cmd == 'clear') {
+                                                terminalLines.clear();
+                                              } else {
+                                                terminalLines.add("Executed: $cmd");
+                                              }
+                                              termInputController.clear();
+                                            });
+                                          }
+                                        },
+                                        child: const Text("Run", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              )
+                            : activeWindow == "freefire"
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.sports_esports, size: 64, color: Colors.orangeAccent),
+                                        const SizedBox(height: 12),
+                                        const Text("Free Fire Cloud Gaming Hub", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                        const SizedBox(height: 6),
+                                        const Text("GPU Container & Control Mapping Active", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                        const SizedBox(height: 20),
+                                        ElevatedButton.icon(
+                                          style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black),
+                                          icon: const Icon(Icons.play_arrow),
+                                          label: const Text("Start Cloud Session"),
+                                          onPressed: () {
+                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Free Fire cloud stream connected!")));
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : activeWindow == "files"
+                                    ? ListView(
+                                        children: const [
+                                          ListTile(leading: Icon(Icons.folder, color: Colors.amber), title: Text("/root/workspace"), subtitle: Text("Infinity Storage")),
+                                          ListTile(leading: Icon(Icons.folder, color: Colors.amber), title: Text("/root/ai_models"), subtitle: Text("Gemini & Custom Weights")),
+                                          ListTile(leading: Icon(Icons.insert_drive_file, color: Colors.blueAccent), title: Text("config.json"), subtitle: Text("1.2 KB")),
+                                        ],
+                                      )
+                                    : Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.psychology, size: 64, color: Colors.orangeAccent),
+                                            const SizedBox(height: 12),
+                                            const Text("God Deven AI Core", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                                            const SizedBox(height: 6),
+                                            const Text("Autonomous background skill-mining online.", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
                   ),
                 ),
-                // Window Bottom Bar
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   color: const Color(0xFF141414),
@@ -326,20 +386,19 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
       ),
     );
   }
-
   Widget _buildDesktopAppIcon(IconData icon, String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: const Color(0xFF1F1F1F),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white24),
             ),
-            child: Icon(icon, color: Colors.orangeAccent, size: 22),
+            child: Icon(icon, color: Colors.orangeAccent, size: 24),
           ),
           const SizedBox(height: 4),
           Text(label, style: const TextStyle(color: Colors.white, fontSize: 10)),

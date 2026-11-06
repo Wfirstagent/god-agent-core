@@ -65,14 +65,14 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   String selectedStatRange = "1 Day";
   bool isCloudBusy = false;
-  String cloudStatus = "Desktop Environment Running: Autonomous Task Execution";
+  String cloudStatus = "Cloud OS Active: Autonomous Multi-Model Engine Online";
   String apiKey = "";
 
   final List cloudTerminalLogs = [
-    "[OS] Deven Desktop Window initialized (Obsidian Core).",
-    "[AI] Gemini bridge connected successfully.",
-    "[TASK] Monitoring GitHub Actions & background skill-mining...",
-    "[READY] Window interface active for user tasks."
+    "[SYS] Deven Desktop OS Kernel v4.2 booting...",
+    "[NET] Secure cloud sandbox tunnel established.",
+    "[AI] Gemini API gateway synchronized (v1 endpoint active).",
+    "[READY] All background agents and workspace plugins mounted."
   ];
 
   @override
@@ -83,7 +83,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     chatLogs = List.from(widget.initialLogs);
     _loadApiKey();
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Apni AQ... wali key settings me daal aur task shuru kar!"});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Apni API key settings me daal kar koi bhi task assign kar."});
     }
   }
 
@@ -126,20 +126,20 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     await _saveLogs();
 
     if (apiKey.isEmpty) {
-      setState(() { chatLogs.add({"sender": "deven", "text": "Bhai, pehle Settings me apni API key save kar!"}); });
+      setState(() { chatLogs.add({"sender": "deven", "text": "Bhai, pehle Settings me apni Gemini API key save kar!"}); });
       await _saveLogs();
       return;
     }
 
     try {
-      // AQ and AIza keys both work directly with the query parameter endpoint
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      // Fixed to use 'v1' endpoint and standard gemini-1.5-flash model to prevent 404 errors
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
       
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone (ChatGPT Dots style). Respond in Hinglish/Hindi naturally. User query: $query" }] }]
+          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
         }),
       );
 
@@ -159,87 +159,146 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) => AlertDialog(
-          backgroundColor: const Color(0xFF121212),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.white24, width: 1.5)),
-          titlePadding: EdgeInsets.zero,
-          title: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1F1F1F),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(10), topRight: Radius.circular(10)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.window, color: Colors.orangeAccent, size: 18),
-                const SizedBox(width: 8),
-                const Expanded(child: Text("Deven Desktop OS Window", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
-                Row(
-                  children: [
-                    Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.amber, shape: BoxShape.circle)),
-                    const SizedBox(width: 6),
-                    InkWell(
-                      onTap: () => Navigator.pop(ctx),
-                      child: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          content: SizedBox(
-            width: double.maxFinite, height: 350,
+        builder: (context, setModalState) => Dialog(
+          backgroundColor: const Color(0xFF0D0D0D),
+          insetPadding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.orangeAccent, width: 1.2)),
+          child: SizedBox(
+            width: double.infinity,
+            height: 500,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Real Desktop Window Titlebar
                 Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF181818),
+                    borderRadius: BorderRadius.only(topLeft: Radius.circular(12), topRight: Radius.circular(12)),
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.circle, size: 8, color: Colors.greenAccent),
-                      const SizedBox(width: 6),
-                      Expanded(child: Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 11))),
+                      const Icon(Icons.computer, color: Colors.orangeAccent, size: 18),
+                      const SizedBox(width: 8),
+                      const Expanded(child: Text("Deven Cloud Workstation [OS v4.2]", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+                      Row(
+                        children: [
+                          Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
+                          const SizedBox(width: 6),
+                          Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.amber, shape: BoxShape.circle)),
+                          const SizedBox(width: 6),
+                          InkWell(
+                            onTap: () => Navigator.pop(ctx),
+                            child: Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle)),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text("Window Terminal & Workspace Stream:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                const SizedBox(height: 6),
+                // Desktop Taskbar / Sub-Header stats
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  color: const Color(0xFF121212),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("CPU: 14% | RAM: 3.2 GB / 8 GB", style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace')),
+                      Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1, color: Colors.white12),
+                // Main Desktop Workspace body with Tabs / Windows
                 Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: const Color(0xFF0A0A0A), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white10)),
-                    child: ListView.builder(
-                      itemCount: cloudTerminalLogs.length,
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text(cloudTerminalLogs[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
-                        );
-                      },
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Active Terminal & Background Processes:", style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 6),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF050505),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: ListView.builder(
+                              itemCount: cloudTerminalLogs.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 3),
+                                  child: Text(cloudTerminalLogs[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF222222), foregroundColor: Colors.orangeAccent),
+                                icon: const Icon(Icons.bolt, size: 16),
+                                label: const Text("Run Skill Miner", style: TextStyle(fontSize: 11)),
+                                onPressed: () {
+                                  setModalState(() {
+                                    cloudTerminalLogs.add("[MINER] Scraping YouTube & Reels code patterns...");
+                                  });
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF222222), foregroundColor: Colors.greenAccent),
+                                icon: const Icon(Icons.sync, size: 16),
+                                label: const Text("GitHub Sync", style: TextStyle(fontSize: 11)),
+                                onPressed: () {
+                                  setModalState(() {
+                                    cloudTerminalLogs.add("[GIT] Repository auto-indexed successfully.");
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
+                  ),
+                ),
+                // Window Footer
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  color: const Color(0xFF121212),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          setModalState(() {
+                            cloudStatus = "Manual User Override Active";
+                            cloudTerminalLogs.add("[OVERRIDE] User took manual control of workstation.");
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access engaged!")));
+                        },
+                        child: const Text("Manual Override", style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.white24, foregroundColor: Colors.white),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text("Close", style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setModalState(() {
-                  isCloudBusy = true;
-                  cloudStatus = "Manual Override: Window paused for user control.";
-                  cloudTerminalLogs.add("[WINDOW] Manual override requested. Task execution suspended.");
-                });
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access granted on window!")));
-              },
-              child: const Text("Request Manual Access", style: TextStyle(color: Colors.orangeAccent, fontSize: 12)),
-            ),
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close Window", style: TextStyle(color: Colors.white70, fontSize: 12))),
-          ],
         ),
       ),
     );
@@ -292,7 +351,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Gemini API Key (AQ...):", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text("Gemini API Key (AQ... or AIza...):", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 8),
             TextField(
               controller: _apiKeyController,
@@ -335,7 +394,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
         backgroundColor: const Color(0xFF171717),
         title: const Text("God Deven (Deven)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(icon: const Icon(Icons.window, color: Colors.orangeAccent), tooltip: "Desktop Window", onPressed: _showCloudComputerModal),
+          IconButton(icon: const Icon(Icons.window, color: Colors.orangeAccent), tooltip: "Desktop Workstation", onPressed: _showCloudComputerModal),
           IconButton(icon: const Icon(Icons.analytics, color: Colors.white70), tooltip: "Stats", onPressed: _showStatsModal),
         ],
       ),
@@ -350,10 +409,10 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                 Icon(Icons.psychology, color: Colors.orangeAccent, size: 32),
                 SizedBox(height: 8),
                 Text("God Deven (Deven)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text("Desktop OS & Cloud Agent", style: TextStyle(fontSize: 11, color: Colors.white70)),
+                Text("Desktop OS & Cloud Workstation", style: TextStyle(fontSize: 11, color: Colors.white70)),
               ]),
             ),
-            ListTile(leading: const Icon(Icons.window, color: Colors.orangeAccent), title: const Text("Cloud Desktop Window", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
+            ListTile(leading: const Icon(Icons.window, color: Colors.orangeAccent), title: const Text("Cloud Desktop Workstation", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
             ListTile(leading: const Icon(Icons.analytics, color: Colors.white70), title: const Text("Execution Stats", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showStatsModal(); }),
             ListTile(leading: const Icon(Icons.settings, color: Colors.white70), title: const Text("Settings & API Key", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showSettingsModal(); }),
           ],

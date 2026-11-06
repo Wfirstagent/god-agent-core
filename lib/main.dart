@@ -65,14 +65,14 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   String selectedStatRange = "1 Day";
   bool isCloudBusy = false;
-  String cloudStatus = "Cloud OS Active: Autonomous Multi-Model Engine Online";
+  String cloudStatus = "Cloud OS Active: Infinite Quantum Core Online";
   String apiKey = "";
 
   final List cloudTerminalLogs = [
-    "[SYS] Deven Desktop OS Kernel v4.2 booting...",
-    "[NET] Secure cloud sandbox tunnel established.",
-    "[AI] Gemini API gateway synchronized (v1 endpoint active).",
-    "[READY] All background agents and workspace plugins mounted."
+    "[SYS] Deven Infinite Quantum OS Kernel booting...",
+    "[NET] Secure infinite sandbox tunnel established.",
+    "[AI] Gemini API gateway synchronized (v1beta endpoint active).",
+    "[READY] Infinity RAM & unlimited background agents mounted."
   ];
 
   @override
@@ -83,7 +83,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     chatLogs = List.from(widget.initialLogs);
     _loadApiKey();
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Apni API key settings me daal kar koi bhi task assign kar."});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Apni API key settings me daal kar unlimited task shuru kar!"});
     }
   }
 
@@ -132,8 +132,8 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     }
 
     try {
-      // Fixed to use 'v1' endpoint and standard gemini-1.5-flash model to prevent 404 errors
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      // Fixed 404 error by switching back to v1beta endpoint for gemini-1.5-flash
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey');
       
       final response = await http.post(
         url,
@@ -165,7 +165,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.orangeAccent, width: 1.2)),
           child: SizedBox(
             width: double.infinity,
-            height: 500,
+            height: 520,
             child: Column(
               children: [
                 // Real Desktop Window Titlebar
@@ -179,7 +179,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     children: [
                       const Icon(Icons.computer, color: Colors.orangeAccent, size: 18),
                       const SizedBox(width: 8),
-                      const Expanded(child: Text("Deven Cloud Workstation [OS v4.2]", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
+                      const Expanded(child: Text("Deven Infinite Cloud Workstation [OS v4.9]", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))),
                       Row(
                         children: [
                           Container(width: 10, height: 10, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)),
@@ -195,27 +195,27 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     ],
                   ),
                 ),
-                // Desktop Taskbar / Sub-Header stats
+                // Infinite RAM & Quantum CPU Header
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   color: const Color(0xFF121212),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text("CPU: 14% | RAM: 3.2 GB / 8 GB", style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace')),
+                      const Text("CPU: Quantum Core (0.01%) | RAM: ∞ / ∞ TB [INFINITY]", style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace')),
                       Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 10)),
                     ],
                   ),
                 ),
                 const Divider(height: 1, color: Colors.white12),
-                // Main Desktop Workspace body with Tabs / Windows
+                // Main Desktop Workspace body
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(10.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Active Terminal & Background Processes:", style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Text("Active Infinite Terminal & Background Nodes:", style: TextStyle(color: Colors.orangeAccent, fontSize: 12, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 6),
                         Expanded(
                           child: Container(
@@ -243,10 +243,10 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF222222), foregroundColor: Colors.orangeAccent),
                                 icon: const Icon(Icons.bolt, size: 16),
-                                label: const Text("Run Skill Miner", style: TextStyle(fontSize: 11)),
+                                label: const Text("Deploy Infinite Miner", style: TextStyle(fontSize: 11)),
                                 onPressed: () {
                                   setModalState(() {
-                                    cloudTerminalLogs.add("[MINER] Scraping YouTube & Reels code patterns...");
+                                    cloudTerminalLogs.add("[INFINITY] Scraping unlimited neural patterns across clusters...");
                                   });
                                 },
                               ),
@@ -256,10 +256,10 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF222222), foregroundColor: Colors.greenAccent),
                                 icon: const Icon(Icons.sync, size: 16),
-                                label: const Text("GitHub Sync", style: TextStyle(fontSize: 11)),
+                                label: const Text("Cluster Sync", style: TextStyle(fontSize: 11)),
                                 onPressed: () {
                                   setModalState(() {
-                                    cloudTerminalLogs.add("[GIT] Repository auto-indexed successfully.");
+                                    cloudTerminalLogs.add("[SYNC] Infinite nodes synchronized successfully.");
                                   });
                                 },
                               ),
@@ -280,8 +280,8 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                       TextButton(
                         onPressed: () {
                           setModalState(() {
-                            cloudStatus = "Manual User Override Active";
-                            cloudTerminalLogs.add("[OVERRIDE] User took manual control of workstation.");
+                            cloudStatus = "Manual User Override Active (Infinite)";
+                            cloudTerminalLogs.add("[OVERRIDE] User took absolute control of quantum workstation.");
                           });
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access engaged!")));
                         },
@@ -331,7 +331,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
-                child: Text("Stats Range: $selectedStatRange\nTasks Executed: 1,420+\nAutonomous Skills Learned: 88", style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                child: Text("Stats Range: $selectedStatRange\nTasks Executed: 1,420+\nAutonomous Skills Learned: 88\nRAM Allocation: INFINITE (Quantum)", style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ),
             ],
           ),
@@ -394,7 +394,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
         backgroundColor: const Color(0xFF171717),
         title: const Text("God Deven (Deven)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(icon: const Icon(Icons.window, color: Colors.orangeAccent), tooltip: "Desktop Workstation", onPressed: _showCloudComputerModal),
+          IconButton(icon: const Icon(Icons.window, color: Colors.orangeAccent), tooltip: "Infinite Desktop Workstation", onPressed: _showCloudComputerModal),
           IconButton(icon: const Icon(Icons.analytics, color: Colors.white70), tooltip: "Stats", onPressed: _showStatsModal),
         ],
       ),
@@ -409,10 +409,10 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                 Icon(Icons.psychology, color: Colors.orangeAccent, size: 32),
                 SizedBox(height: 8),
                 Text("God Deven (Deven)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                Text("Desktop OS & Cloud Workstation", style: TextStyle(fontSize: 11, color: Colors.white70)),
+                Text("Infinite Desktop OS Workstation", style: TextStyle(fontSize: 11, color: Colors.white70)),
               ]),
             ),
-            ListTile(leading: const Icon(Icons.window, color: Colors.orangeAccent), title: const Text("Cloud Desktop Workstation", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
+            ListTile(leading: const Icon(Icons.window, color: Colors.orangeAccent), title: const Text("Infinite Cloud Desktop", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
             ListTile(leading: const Icon(Icons.analytics, color: Colors.white70), title: const Text("Execution Stats", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showStatsModal(); }),
             ListTile(leading: const Icon(Icons.settings, color: Colors.white70), title: const Text("Settings & API Key", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showSettingsModal(); }),
           ],

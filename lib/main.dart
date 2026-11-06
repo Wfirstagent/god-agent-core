@@ -81,7 +81,7 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
   Future<void> _loadApiKey() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key'] ?? '';
+      apiKey = prefs.getString('gemini_api_key') ?? '';
       _apiKeyController.text = apiKey;
     });
   }

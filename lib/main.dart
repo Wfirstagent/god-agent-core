@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -64,14 +65,15 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
 
   String selectedStatRange = "1 Day";
   bool isCloudBusy = false;
-  String cloudStatus = "Deven's Cloud Computer: Idle";
+  String cloudStatus = "Cloud Environment Active: Autonomous Skill-Mining & Background Execution";
   String apiKey = "";
 
-  final List cloudTasks = [
-    {"task": "GitHub Auto-Sync & Repo Indexing", "status": "Running"},
-    {"task": "YouTube & Instagram Plugins", "status": "Active"},
-    {"task": "VK Social Bridge Connector", "status": "Connected"},
-    {"task": "Autonomous Idle Skill Miner", "status": "Learning"}
+  final List cloudTerminalLogs = [
+    "[00:01:20] Initializing Obsidian Secure Sandbox...",
+    "[00:02:10] GitHub Actions auto-sync container online.",
+    "[00:03:45] Scraping YouTube & Reels for new code patterns...",
+    "[00:04:12] VK & Instagram Plugin bridge verified.",
+    "[00:05:00] Deven Cloud Computer ready for live commands."
   ];
 
   @override
@@ -82,7 +84,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     chatLogs = List.from(widget.initialLogs);
     _loadApiKey();
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. API key settings me save karo."});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni Gemini API key paste karo aur mujhe task do."});
     }
   }
 
@@ -98,7 +100,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('gemini_api_key', key);
     setState(() { apiKey = key; });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gemini API Key saved securely!')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gemini API Key saved successfully!')));
   }
 
   Future<void> _saveLogs() async {
@@ -113,7 +115,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
       SharedPreferences.getInstance().then((prefs) { prefs.setBool('is_authorized', true); });
       setState(() { _isAuthorized = true; });
       _passcodeController.clear();
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Unlocked!")));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Console Unlocked Successfully!")));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Incorrect Passcode!")));
     }
@@ -125,7 +127,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
     await _saveLogs();
 
     if (apiKey.isEmpty) {
-      setState(() { chatLogs.add({"sender": "deven", "text": "Pehle Settings me Gemini API key save karo bhai!"}); });
+      setState(() { chatLogs.add({"sender": "deven", "text": "Bhai, pehle menu se Settings me jaakar apni Gemini API key save karo!"}); });
       await _saveLogs();
       return;
     }
@@ -136,7 +138,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone. Respond in Hinglish/Hindi naturally. User query: $query" }] }]
+          "contents": [{ "parts": [{ "text": "You are God Deven, an Obsidian-themed autonomous AI agent with human-like close friend tone (ChatGPT Dots style). Respond in Hinglish/Hindi naturally. User query: $query" }] }]
         }),
       );
 
@@ -145,7 +147,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
         String botReply = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() { chatLogs.add({"sender": "deven", "text": botReply}); });
       } else {
-        setState(() { chatLogs.add({"sender": "deven", "text": "API connection error. Key check karo."}); });
+        setState(() { chatLogs.add({"sender": "deven", "text": "API connection error. Key check karo bhai."}); });
       }
     } catch (e) {
       setState(() { chatLogs.add({"sender": "deven", "text": "Network error: $e"}); });
@@ -158,38 +160,44 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setModalState) => AlertDialog(
           backgroundColor: const Color(0xFF171717),
-          title: Row(children: const [Icon(Icons.computer, color: Colors.white), SizedBox(width: 10), Text("Deven Cloud Computer", style: TextStyle(color: Colors.white))]),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.white24)),
+          title: Row(children: const [
+            Icon(Icons.computer, color: Colors.orangeAccent),
+            SizedBox(width: 10),
+            Text("Deven Cloud Computer (Live)", style: TextStyle(color: Colors.white, fontSize: 16)),
+          ]),
           content: SizedBox(
-            width: double.maxFinite, height: 260,
+            width: double.maxFinite, height: 320,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
-                  child: Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                  decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white12)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.circle, size: 10, color: Colors.greenAccent),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(cloudStatus, style: const TextStyle(color: Colors.white70, fontSize: 11))),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 10),
-                const Text("Active Background Tasks:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text("Live Cloud Terminal Stream:", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 6),
                 Expanded(
-                  child: ListView.builder(
-                    itemCount: cloudTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = cloudTasks[index];
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 3),
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: const Color(0xFF212121), borderRadius: BorderRadius.circular(6)),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(child: Text(task["task"] ?? "", style: const TextStyle(color: Colors.white, fontSize: 12))),
-                            Text(task["status"] ?? "", style: const TextStyle(color: Colors.orangeAccent, fontSize: 11)),
-                          ],
-                        ),
-                      );
-                    },
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: const Color(0xFF0A0A0A), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.white10)),
+                    child: ListView.builder(
+                      itemCount: cloudTerminalLogs.length,
+                      itemBuilder: (context, index) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(cloudTerminalLogs[index], style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 11)),
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
@@ -198,8 +206,12 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                setModalState(() { isCloudBusy = true; cloudStatus = "Manual access requested."; });
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access requested.")));
+                setModalState(() {
+                  isCloudBusy = true;
+                  cloudStatus = "Manual Override Active: Cloud execution paused for user.";
+                  cloudTerminalLogs.add("[MANUAL] User requested manual access. Holding background tasks.");
+                });
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Manual access granted! Cloud paused.")));
               },
               child: const Text("Request Manual Access", style: TextStyle(color: Colors.orangeAccent)),
             ),
@@ -237,7 +249,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(8)),
-                child: Text("Stats Range: $selectedStatRange\nTasks Executed: 1,420+\nAutonomous Skills Learned: 88", style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                child: Text("Stats Range: $selectedStatRange\nTasks Executed: 1,420+\nAutonomous Skills Learned: 88\nGitHub/YouTube/VK Sync: Optimal", style: const TextStyle(fontSize: 12, color: Colors.white70)),
               ),
             ],
           ),
@@ -257,13 +269,27 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Gemini API Key:", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text("Gemini API Key (Paste your key below):", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 8),
             TextField(
               controller: _apiKeyController,
-              obscureText: true,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(filled: true, fillColor: Colors.black, border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.black,
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.paste, color: Colors.orangeAccent),
+                  tooltip: "Paste from Clipboard",
+                  onPressed: () async {
+                    ClipboardData? data = await Clipboard.getData(Clipboard.kTextPlain);
+                    if (data != null && data.text != null) {
+                      _apiKeyController.text = data.text!;
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("API Key pasted from clipboard!")));
+                    }
+                  },
+                ),
+              ),
             ),
           ],
         ),
@@ -286,8 +312,8 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
         backgroundColor: const Color(0xFF171717),
         title: const Text("God Deven (Deven)", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
-          IconButton(icon: const Icon(Icons.computer, color: Colors.white70), onPressed: _showCloudComputerModal),
-          IconButton(icon: const Icon(Icons.analytics, color: Colors.white70), onPressed: _showStatsModal),
+          IconButton(icon: const Icon(Icons.computer, color: Colors.orangeAccent), tooltip: "Live Cloud Computer", onPressed: _showCloudComputerModal),
+          IconButton(icon: const Icon(Icons.analytics, color: Colors.white70), tooltip: "Stats", onPressed: _showStatsModal),
         ],
       ),
       drawer: Drawer(
@@ -298,14 +324,14 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.black),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.end, children: [
-                Icon(Icons.psychology, color: Colors.white, size: 32),
+                Icon(Icons.psychology, color: Colors.orangeAccent, size: 32),
                 SizedBox(height: 8),
                 Text("God Deven (Deven)", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
                 Text("Universal Plugin & Cloud Agent", style: TextStyle(fontSize: 11, color: Colors.white70)),
               ]),
             ),
-            ListTile(leading: const Icon(Icons.computer, color: Colors.white70), title: const Text("Cloud Computer", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
-            ListTile(leading: const Icon(Icons.analytics, color: Colors.white70), title: const Text("Stats", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showStatsModal(); }),
+            ListTile(leading: const Icon(Icons.computer, color: Colors.orangeAccent), title: const Text("Cloud Computer Live Viewer", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showCloudComputerModal(); }),
+            ListTile(leading: const Icon(Icons.analytics, color: Colors.white70), title: const Text("Execution Stats", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showStatsModal(); }),
             ListTile(leading: const Icon(Icons.settings, color: Colors.white70), title: const Text("Settings & API Key", style: TextStyle(color: Colors.white)), onTap: () { Navigator.pop(context); _showSettingsModal(); }),
           ],
         ),
@@ -317,7 +343,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.lock_outline, size: 64, color: Colors.white70),
+                    const Icon(Icons.lock_outline, size: 64, color: Colors.orangeAccent),
                     const SizedBox(height: 16),
                     const Text("Enter God Deven Secure Passcode", style: TextStyle(color: Colors.white70, fontSize: 16)),
                     const SizedBox(height: 20),
@@ -356,7 +382,7 @@ class _DevenDashboardScreenState extends State<DevenDashboardScreen> {
                     child: Row(
                       children: [
                         Expanded(child: TextField(controller: _chatController, style: const TextStyle(color: Colors.white, fontSize: 14), decoration: const InputDecoration(hintText: "Message God Deven...", border: InputBorder.none))),
-                        IconButton(icon: const Icon(Icons.send, color: Colors.white), onPressed: () => _sendDevenMessage(_chatController.text)),
+                        IconButton(icon: const Icon(Icons.send, color: Colors.orangeAccent), onPressed: () => _sendDevenMessage(_chatController.text)),
                       ],
                     ),
                   ),

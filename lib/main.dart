@@ -25,7 +25,7 @@ class GodDevenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'God Deven AI Voice & Chat',
+      title: 'God Deven AI',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF050505),
@@ -49,13 +49,11 @@ class DevenHomeScreen extends StatefulWidget {
 class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _chatController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
-  final TextEditingController _backendUrlController = TextEditingController();
 
   late List chatLogs;
   String apiKey = "";
-  String backendUrl = "https://your-backend-url.com";
   bool isCallActive = false;
-  String callStatus = "Tap to start conversation";
+  String callStatus = "Voice bridge inactive (Configure backend)";
 
   late AnimationController _voiceAnimation;
 
@@ -71,7 +69,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     )..repeat(reverse: true);
 
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni Gemini API Key daal aur chat ya AI Voice call shuru kar!"});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni Gemini API Key daal aur fast chat shuru kar!"});
     }
   }
 
@@ -80,7 +78,6 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     _voiceAnimation.dispose();
     _chatController.dispose();
     _apiKeyController.dispose();
-    _backendUrlController.dispose();
     super.dispose();
   }
 
@@ -89,20 +86,16 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     setState(() {
       apiKey = prefs.getString('gemini_api_key') ?? '';
       _apiKeyController.text = apiKey;
-      backendUrl = prefs.getString('backend_url') ?? 'https://your-backend-url.com';
-      _backendUrlController.text = backendUrl;
     });
   }
 
-  Future<void> _saveSettings(String key, String url) async {
+  Future<void> _saveSettings(String key) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('gemini_api_key', key.trim());
-    await prefs.setString('backend_url', url.trim());
     setState(() {
       apiKey = key.trim();
-      backendUrl = url.trim();
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved successfully!')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('API Key saved successfully!')));
   }
 
   Future<void> _saveLogs() async {
@@ -123,31 +116,23 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     }
 
     try {
-      final List<String> endpoints = [
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=$apiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'
-      ];
+      // Fast and direct v1 endpoint to eliminate 404 errors and lag
+      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
+      
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "contents": [{ "parts": [{ "text": "You are God Deven, an advanced AI assistant. Respond in Hinglish/Hindi fast and naturally. User: $query" }] }]
+        }),
+      );
 
-      http.Response? response;
-      for (String endpoint in endpoints) {
-        try {
-          response = await http.post(
-            Uri.parse(endpoint),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode({
-              "contents": [{ "parts": [{ "text": "You are God Deven, an advanced AI assistant. Respond in Hinglish/Hindi naturally. User: $query" }] }]
-            }),
-          );
-          if (response.statusCode == 200) break;
-        } catch (e) {}
-      }
-
-      if (response != null && response.statusCode == 200) {
+      if (response.statusCode == 200) {
         final data = json.decode(response.body);
         String botReply = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() { chatLogs.add({"sender": "deven", "text": botReply}); });
       } else {
-        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response?.statusCode}): ${response?.body ?? 'Unknown error'}"}); });
+        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response.statusCode}): ${response.body}"}); });
       }
     } catch (e) {
       setState(() { chatLogs.add({"sender": "deven", "text": "Network error: $e"}); });
@@ -158,7 +143,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
   void _toggleAICall() {
     setState(() {
       isCallActive = !isCallActive;
-      callStatus = isCallActive ? "Connecting to AI Voice Bridge..." : "Call Ended";
+      callStatus = isCallActive ? "Connecting..." : "Call Ended";
     });
   }
 
@@ -167,7 +152,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF171717),
-        title: const Text("API & Backend Settings", style: TextStyle(color: Colors.white)),
+        title: const Text("Gemini API Settings", style: TextStyle(color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -179,14 +164,6 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(filled: true, fillColor: Colors.black, border: OutlineInputBorder()),
             ),
-            const SizedBox(height: 12),
-            const Text("WebRTC Backend URL (for Voice Call):", style: TextStyle(color: Colors.white70, fontSize: 12)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _backendUrlController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(filled: true, fillColor: Colors.black, border: OutlineInputBorder()),
-            ),
           ],
         ),
         actions: [
@@ -194,7 +171,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orangeAccent, foregroundColor: Colors.black),
             onPressed: () {
-              _saveSettings(_apiKeyController.text, _backendUrlController.text);
+              _saveSettings(_apiKeyController.text);
               Navigator.pop(ctx);
             },
             child: const Text("Save"),
@@ -209,7 +186,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
-        title: const Text("God Deven [AI & Voice]", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("God Deven [Fast AI]", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
           IconButton(
             icon: const Icon(Icons.phone_in_talk, color: Colors.greenAccent),
@@ -292,7 +269,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
                     const SizedBox(height: 10),
                     Text(callStatus, style: const TextStyle(color: Colors.greenAccent, fontSize: 14)),
                     const SizedBox(height: 6),
-                    const Text("Hinglish Real-time Audio Bridge", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    const Text("WebRTC Backend Required for Audio", style: TextStyle(color: Colors.white38, fontSize: 12)),
                     const Spacer(),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,

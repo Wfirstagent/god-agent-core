@@ -28,7 +28,7 @@ class GodDevenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'God Deven Real Cloud OS',
+      title: 'God Deven Real Cloud OS & AI Call',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF050505),
@@ -50,7 +50,7 @@ class DevenDesktopScreen extends StatefulWidget {
   State<DevenDesktopScreen> createState() => _DevenDesktopScreenState();
 }
 
-class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
+class _DevenDesktopScreenState extends State<DevenDesktopScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _passcodeController = TextEditingController();
   final TextEditingController _chatController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
@@ -62,11 +62,14 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
   String cloudWorkspaceUrl = "https://shell.cloud-workstation.internal";
   bool isCloudOpen = false;
   bool isCallActive = false;
+  String callStatus = "Ready for AI Voice Call";
   String activeWindow = "desktop";
 
+  late AnimationController _voiceAnimation;
+
   final List<String> terminalOutput = [
-    "Deven Real Cloud Workstation v13.0 [Encrypted Kernel & Call Core]",
-    "Type shell commands, connect cloud VM stream, or initiate voice call.",
+    "God Deven Kernel v14.0 [Encrypted WebRTC & Cloud Core]",
+    "Type shell commands, connect cloud VM stream, or start AI voice call.",
     "------------------------------------------------------------------"
   ];
 
@@ -76,9 +79,25 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
     _isAuthorized = widget.initialAuthorized;
     chatLogs = List.from(widget.initialLogs);
     _loadSettings();
+    
+    _voiceAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me API key daal, Call feature ya Cloud Workstation shuru kar!"});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me API key daal, Cloud Workstation khol ya AI Voice Call shuru kar!"});
     }
+  }
+
+  @override
+  void dispose() {
+    _voiceAnimation.dispose();
+    _passcodeController.dispose();
+    _chatController.dispose();
+    _apiKeyController.dispose();
+    _cloudUrlController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSettings() async {
@@ -99,7 +118,7 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
       apiKey = key.trim();
       cloudWorkspaceUrl = url.trim();
     });
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved & secured successfully!')));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved successfully!')));
   }
 
   Future<void> _saveLogs() async {
@@ -163,19 +182,11 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
     }
     await _saveLogs();
   }
-  void _toggleCallSession() {
+  void _toggleAICallOverlay() {
     setState(() {
       isCallActive = !isCallActive;
-      if (isCallActive) {
-        chatLogs.add({"sender": "deven", "text": "[VOICE CALL] Live voice & audio bridge connected with God Deven AI Core."});
-      } else {
-        chatLogs.add({"sender": "deven", "text": "[VOICE CALL] Call session disconnected."});
-      }
+      callStatus = isCallActive ? "Connected to God Deven AI Voice" : "Call Ended";
     });
-    _saveLogs();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(isCallActive ? "Live Voice Call Started!" : "Call Ended.")),
-    );
   }
 
   void _showSettingsModal() {
@@ -188,30 +199,20 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Gemini API Key (AIza... or AQ...):", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text("Gemini API Key:", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 6),
             TextField(
               controller: _apiKeyController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: Colors.black,
-                border: OutlineInputBorder(),
-                hintText: "Enter API Key",
-              ),
+              decoration: const InputDecoration(filled: true, fillColor: Colors.black, border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
-            const Text("Cloud VM / Stream URL (noVNC / Server):", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            const Text("Cloud VM Stream URL:", style: TextStyle(color: Colors.white70, fontSize: 12)),
             const SizedBox(height: 6),
             TextField(
               controller: _cloudUrlController,
               style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                filled: true,
-                fillColor: Colors.black,
-                border: OutlineInputBorder(),
-                hintText: "https://your-cloud-vm-url.com",
-              ),
+              decoration: const InputDecoration(filled: true, fillColor: Colors.black, border: OutlineInputBorder()),
             ),
           ],
         ),
@@ -223,7 +224,7 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
               _saveSettings(_apiKeyController.text, _cloudUrlController.text);
               Navigator.pop(ctx);
             },
-            child: const Text("Save Settings"),
+            child: const Text("Save"),
           ),
         ],
       ),
@@ -235,16 +236,16 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
-        title: Text(isCallActive ? "God Deven [In Call...]" : "God Deven [Real Cloud Workstation]", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("God Deven [Cloud OS & AI Voice]", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
           IconButton(
-            icon: Icon(isCallActive ? Icons.call_end : Icons.phone_in_talk, color: isCallActive ? Colors.redAccent : Colors.greenAccent),
-            tooltip: isCallActive ? "End Voice Call" : "Start Voice Call",
-            onPressed: _toggleCallSession,
+            icon: const Icon(Icons.phone_in_talk, color: Colors.greenAccent),
+            tooltip: "AI Voice Call",
+            onPressed: _toggleAICallOverlay,
           ),
           IconButton(
             icon: const Icon(Icons.desktop_windows, color: Colors.orangeAccent),
-            tooltip: "Open Cloud Desktop",
+            tooltip: "Cloud Desktop",
             onPressed: () { setState(() { isCloudOpen = true; }); },
           ),
           IconButton(
@@ -276,24 +277,6 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
               children: [
                 Column(
                   children: [
-                    if (isCallActive)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        color: Colors.green.withOpacity(0.2),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.mic, color: Colors.greenAccent, size: 16),
-                            const SizedBox(width: 8),
-                            const Text("Live Audio Call Active with God Deven", style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.bold)),
-                            const SizedBox(width: 12),
-                            InkWell(
-                              onTap: _toggleCallSession,
-                              child: const Text("[Disconnect]", style: TextStyle(color: Colors.redAccent, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      ),
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.all(12),
@@ -327,6 +310,57 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
                     ),
                   ],
                 ),
+                if (isCallActive)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withOpacity(0.95),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Spacer(),
+                          AnimatedBuilder(
+                            animation: _voiceAnimation,
+                            builder: (context, child) {
+                              return Transform.scale(
+                                scale: 1.0 + (_voiceAnimation.value * 0.15),
+                                child: Container(
+                                  height: 160,
+                                  width: 160,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFF1E1E1E),
+                                    border: Border.all(color: Colors.greenAccent, width: 2),
+                                    boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.3), blurRadius: 30, spreadRadius: 5)],
+                                  ),
+                                  child: const Icon(Icons.mic, color: Colors.greenAccent, size: 70),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 30),
+                          const Text("God Deven AI Voice Bridge", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+                          Text(callStatus, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                          const Text("Hindi • English Real-time", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                          const Spacer(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              InkWell(
+                                onTap: _toggleAICallOverlay,
+                                child: Container(
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                                  child: const Icon(Icons.call_end, color: Colors.white, size: 30),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 50),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (isCloudOpen)
                   Positioned.fill(
                     child: Container(
@@ -360,7 +394,7 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
                                   ? Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text("Select Workstation Environment (Full Computer Mode):", style: TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold)),
+                                        const Text("Select Workstation Environment:", style: TextStyle(color: Colors.orangeAccent, fontSize: 13, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 16),
                                         Wrap(
                                           spacing: 20,
@@ -391,7 +425,7 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
                                             TextField(
                                               style: const TextStyle(color: Colors.greenAccent, fontFamily: 'monospace', fontSize: 12),
                                               decoration: const InputDecoration(
-                                                hintText: "Type shell command (apt install, git clone, etc.)...",
+                                                hintText: "Type shell command...",
                                                 filled: true,
                                                 fillColor: Color(0xFF141414),
                                                 border: OutlineInputBorder(borderSide: BorderSide.none),
@@ -399,50 +433,37 @@ class _DevenDesktopScreenState extends State<DevenDesktopScreen> {
                                               onSubmitted: (val) {
                                                 setState(() {
                                                   terminalOutput.add("root@deven-cloud:~# $val");
-                                                  if (val == 'help') terminalOutput.add("Commands: status, clear, install, apt-get");
-                                                  else if (val == 'status') terminalOutput.add("[INFO] Cloud VM container running, infinite storage mounted.");
+                                                  if (val == 'status') terminalOutput.add("[INFO] Cloud VM container running.");
                                                   else terminalOutput.add("Executed: $val");
                                                 });
                                               },
                                             ),
                                           ],
                                         )
-                                          : activeWindow == "stream"
-                                              ? Center(
-                                                  child: Column(
-                                                    mainAxisAlignment: MainAxisAlignment.center,
-                                                    children: [
-                                                      const Icon(Icons.cloud_done, size: 64, color: Colors.orangeAccent),
-                                                      const SizedBox(height: 12),
-                                                      Text("Connected to Remote VM Stream:\n$cloudWorkspaceUrl", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)),
-                                                      const SizedBox(height: 16),
-                                                      const Text("Yahan aap full Linux/Windows desktop (Free Fire, VS Code, Apps) stream kar rahe hain.", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white54, fontSize: 11)),
-                                                    ],
-                                                  ),
+                                      : activeWindow == "stream"
+                                          ? Center(
+                                              child: Column(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  const Icon(Icons.cloud_done, size: 64, color: Colors.orangeAccent),
+                                                  const SizedBox(height: 12),
+                                                  Text("Connected to Remote VM:\n$cloudWorkspaceUrl", textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                                                ],
+                                              ),
+                                            )
+                                          : activeWindow == "files"
+                                              ? ListView(
+                                                  children: const [
+                                                    ListTile(leading: Icon(Icons.folder, color: Colors.amber), title: Text("/root/workspace"), subtitle: Text("Cloud Storage")),
+                                                  ],
                                                 )
-                                              : activeWindow == "files"
-                                                  ? ListView(
-                                                      children: const [
-                                                        ListTile(leading: Icon(Icons.folder, color: Colors.amber), title: Text("/root/workspace"), subtitle: Text("Infinite Cloud Storage")),
-                                                        ListTile(leading: Icon(Icons.folder, color: Colors.amber), title: Text("/root/downloads"), subtitle: Text("App / Game Packages")),
-                                                      ],
-                                                    )
-                                                  : Center(
-                                                      child: Column(
-                                                        mainAxisAlignment: MainAxisAlignment.center,
-                                                        children: [
-                                                          const Icon(Icons.psychology, size: 64, color: Colors.orangeAccent),
-                                                          const SizedBox(height: 12),
-                                                          const Text("AI Core Active", style: TextStyle(color: Colors.white, fontSize: 16)),
-                                                        ],
-                                                      ),
-                                                    ),
+                                              : const Center(child: Text("AI Core Active", style: TextStyle(color: Colors.white, fontSize: 16))),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
               ],
             ),
     );

@@ -104,7 +104,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key') ?? '';
+      apiKey = prefs.getString('gemini_api_key'] ?? '';
       _apiKeyController.text = apiKey;
     });
   }
@@ -136,11 +136,10 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     }
 
     try {
+      // Fixed 404 error using correct v1beta endpoints and active models
       final List<String> apiEndpoints = [
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
-        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey'
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey'
       ];
 
       http.Response? response;
@@ -178,6 +177,32 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     await _saveLogs();
   }
 
+  Future<void> _speakDynamicGreeting() async {
+    if (apiKey.isEmpty) {
+      await flutterTts.speak("Bhai, pehle apni API key settings me save karlo.");
+      return;
+    }
+    try {
+      final endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey';
+      final response = await http.post(
+        Uri.parse(endpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          "contents": [{ "parts": [{ "text": "Generate a short, friendly, natural greeting in Hinglish for a phone call start as God Deven AI agent. Max 15 words." }] }]
+        }),
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        String greeting = data['candidates'][0]['content']['parts'][0]['text'];
+        await flutterTts.speak(greeting);
+      } else {
+        await flutterTts.speak("Namaste, main God Deven hoon. Batao kya madad karu?");
+      }
+    } catch (e) {
+      await flutterTts.speak("Namaste, connection ready hai.");
+    }
+  }
+
   void _startAICall() {
     setState(() {
       isCallActive = true;
@@ -197,7 +222,8 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
           callStatus = "Connected (00:00)";
         });
         
-        await flutterTts.speak("Namaste! Main God Deven hoon. Bataiye, aaj kya help chahiye?");
+        // Dynamic AI Voice generation instead of fixed robot text
+        await _speakDynamicGreeting();
 
         _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (!isCallActive) {
@@ -364,7 +390,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
                     const SizedBox(height: 10),
                     Text(callStatus, style: TextStyle(color: isConnected ? Colors.greenAccent : Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 6),
-                    Text(isRinging ? "Calling agent..." : "Live Audio Speaking Active", style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                    Text(isRinging ? "Calling agent..." : "Dynamic AI Voice Active", style: const TextStyle(color: Colors.white38, fontSize: 12)),
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),

@@ -58,7 +58,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
   bool isRinging = false;
   bool isConnected = false;
   bool isMuted = false;
-  bool isSpeakerOn = false;
+  bool isSpeakerOn = true;
   String callStatus = "Ringing...";
   Timer? _callTimer;
   int callDurationSeconds = 0;
@@ -104,7 +104,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key'] ?? '';
+      apiKey = prefs.getString('gemini_api_key') ?? '';
       _apiKeyController.text = apiKey;
     });
   }
@@ -136,7 +136,6 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     }
 
     try {
-      // Robust multi-endpoint fallback to completely prevent 404 errors across v1 and v1beta
       final List<String> apiEndpoints = [
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
         'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
@@ -198,7 +197,6 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
           callStatus = "Connected (00:00)";
         });
         
-        // Speak initial greeting on call
         await flutterTts.speak("Namaste! Main God Deven hoon. Bataiye, aaj kya help chahiye?");
 
         _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {

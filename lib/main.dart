@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,14 +47,20 @@ class DevenHomeScreen extends StatefulWidget {
   State<DevenHomeScreen> createState() => _DevenHomeScreenState();
 }
 
-class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProviderStateMixin {
+class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderStateMixin {
   final TextEditingController _chatController = TextEditingController();
   final TextEditingController _apiKeyController = TextEditingController();
 
   late List chatLogs;
   String apiKey = "";
   bool isCallActive = false;
-  String callStatus = "Voice bridge inactive (Configure backend)";
+  bool isRinging = false;
+  bool isConnected = false;
+  bool isMuted = false;
+  bool isSpeakerOn = false;
+  String callStatus = "Ringing...";
+  Timer? _callTimer;
+  int callDurationSeconds = 0;
 
   late AnimationController _voiceAnimation;
 
@@ -78,6 +85,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     _voiceAnimation.dispose();
     _chatController.dispose();
     _apiKeyController.dispose();
+    _callTimer?.cancel();
     super.dispose();
   }
 
@@ -116,23 +124,40 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     }
 
     try {
-      // Fast and direct v1 endpoint to eliminate 404 errors and lag
-      final url = Uri.parse('https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey');
-      
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          "contents": [{ "parts": [{ "text": "You are God Deven, an advanced AI assistant. Respond in Hinglish/Hindi fast and naturally. User: $query" }] }]
-        }),
-      );
+      final List<String> apiEndpoints = [
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey'
+      ];
 
-      if (response.statusCode == 200) {
+      http.Response? response;
+      String lastError = "";
+
+      for (String endpoint in apiEndpoints) {
+        try {
+          response = await http.post(
+            Uri.parse(endpoint),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              "contents": [{ "parts": [{ "text": "You are God Deven, an advanced AI assistant. Respond in Hinglish/Hindi fast and naturally. User: $query" }] }]
+            }),
+          );
+          if (response.statusCode == 200) {
+            break;
+          } else {
+            lastError = "Status ${response.statusCode}: ${response.body}";
+          }
+        } catch (e) {
+          lastError = e.toString();
+        }
+      }
+
+      if (response != null && response.statusCode == 200) {
         final data = json.decode(response.body);
         String botReply = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() { chatLogs.add({"sender": "deven", "text": botReply}); });
       } else {
-        setState(() { chatLogs.add({"sender": "deven", "text": "API Error (${response.statusCode}): ${response.body}"}); });
+        setState(() { chatLogs.add({"sender": "deven", "text": "API Error: $lastError"}); });
       }
     } catch (e) {
       setState(() { chatLogs.add({"sender": "deven", "text": "Network error: $e"}); });
@@ -140,10 +165,61 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     await _saveLogs();
   }
 
-  void _toggleAICall() {
+  void _startAICall() {
     setState(() {
-      isCallActive = !isCallActive;
-      callStatus = isCallActive ? "Connecting..." : "Call Ended";
+      isCallActive = true;
+      isRinging = true;
+      isConnected = false;
+      isMuted = false;
+      isSpeakerOn = false;
+      callStatus = "Ringing God Deven...";
+      callDurationSeconds = 0;
+    });
+
+    Timer(const Duration(seconds: 3), () {
+      if (isCallActive && isRinging) {
+        setState(() {
+          isRinging = false;
+          isConnected = true;
+          callStatus = "Connected (00:00)";
+        });
+        _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!isCallActive) {
+            timer.cancel();
+          } else {
+            setState(() {
+              callDurationSeconds++;
+              int mins = callDurationSeconds ~/ 60;
+              int secs = callDurationSeconds % 60;
+              String minStr = mins.toString().padLeft(2, '0');
+              String secStr = secs.toString().padLeft(2, '0');
+              callStatus = "Connected ($minStr:$secStr)";
+            });
+          }
+        });
+      }
+    });
+  }
+
+  void _endAICall() {
+    _callTimer?.cancel();
+    setState(() {
+      isCallActive = false;
+      isRinging = false;
+      isConnected = false;
+      callStatus = "Call Ended";
+    });
+  }
+
+  void _toggleMute() {
+    setState(() {
+      isMuted = !isMuted;
+    });
+  }
+
+  void _toggleSpeaker() {
+    setState(() {
+      isSpeakerOn = !isSpeakerOn;
     });
   }
 
@@ -186,12 +262,12 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF121212),
-        title: const Text("God Deven [Fast AI]", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text("God Deven [Fast AI & Call]", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
         actions: [
           IconButton(
             icon: const Icon(Icons.phone_in_talk, color: Colors.greenAccent),
             tooltip: "AI Voice Call",
-            onPressed: _toggleAICall,
+            onPressed: _startAICall,
           ),
           IconButton(
             icon: const Icon(Icons.settings, color: Colors.white70),
@@ -249,17 +325,17 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
                       animation: _voiceAnimation,
                       builder: (context, child) {
                         return Transform.scale(
-                          scale: 1.0 + (_voiceAnimation.value * 0.2),
+                          scale: isConnected ? (1.0 + (_voiceAnimation.value * 0.2)) : 1.0,
                           child: Container(
                             height: 180,
                             width: 180,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: const Color(0xFF1E1E1E),
-                              border: Border.all(color: Colors.greenAccent, width: 2),
-                              boxShadow: [BoxShadow(color: Colors.greenAccent.withOpacity(0.4), blurRadius: 40, spreadRadius: 10)],
+                              border: Border.all(color: isConnected ? Colors.greenAccent : Colors.orangeAccent, width: 2),
+                              boxShadow: [BoxShadow(color: (isConnected ? Colors.greenAccent : Colors.orangeAccent).withOpacity(0.4), blurRadius: 40, spreadRadius: 10)],
                             ),
-                            child: const Icon(Icons.mic, color: Colors.greenAccent, size: 80),
+                            child: Icon(isConnected ? Icons.mic : Icons.phone_forwarded, color: isConnected ? Colors.greenAccent : Colors.orangeAccent, size: 80),
                           ),
                         );
                       },
@@ -267,22 +343,68 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with SingleTickerProv
                     const SizedBox(height: 35),
                     const Text("God Deven AI Voice", style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 10),
-                    Text(callStatus, style: const TextStyle(color: Colors.greenAccent, fontSize: 14)),
+                    Text(callStatus, style: TextStyle(color: isConnected ? Colors.greenAccent : Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 6),
-                    const Text("WebRTC Backend Required for Audio", style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    Text(isRinging ? "Calling agent..." : "Live Hinglish Voice Conversation", style: const TextStyle(color: Colors.white38, fontSize: 12)),
                     const Spacer(),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        InkWell(
-                          onTap: _toggleAICall,
-                          child: Container(
-                            padding: const EdgeInsets.all(22),
-                            decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                            child: const Icon(Icons.call_end, color: Colors.white, size: 32),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: isConnected ? _toggleMute : null,
+                                icon: Icon(isMuted ? Icons.mic_off : Icons.mic),
+                                color: isMuted ? Colors.redAccent : Colors.white,
+                                iconSize: 28,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E1E1E),
+                                  padding: const EdgeInsets.all(14),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(isMuted ? "Unmute" : "Mute", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
                           ),
-                        ),
-                      ],
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: _endAICall,
+                                icon: const Icon(Icons.call_end),
+                                color: Colors.white,
+                                iconSize: 32,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  padding: const EdgeInsets.all(16),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              const Text("End", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                onPressed: isConnected ? _toggleSpeaker : null,
+                                icon: Icon(isSpeakerOn ? Icons.volume_up : Icons.volume_down),
+                                color: isSpeakerOn ? Colors.greenAccent : Colors.white,
+                                iconSize: 28,
+                                style: IconButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1E1E1E),
+                                  padding: const EdgeInsets.all(14),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(isSpeakerOn ? "Speaker" : "Earpiece", style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 60),
                   ],

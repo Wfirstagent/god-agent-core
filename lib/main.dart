@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:convert';
 import 'dart:async';
 
@@ -26,7 +27,7 @@ class GodDevenApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'God Deven AI',
+      title: 'God Deven AI Voice & Chat',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF050505),
@@ -62,6 +63,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
   Timer? _callTimer;
   int callDurationSeconds = 0;
 
+  late FlutterTts flutterTts;
   late AnimationController _voiceAnimation;
 
   @override
@@ -69,6 +71,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     super.initState();
     chatLogs = List.from(widget.initialLogs);
     _loadSettings();
+    _initTts();
 
     _voiceAnimation = AnimationController(
       vsync: this,
@@ -76,8 +79,16 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     )..repeat(reverse: true);
 
     if (chatLogs.isEmpty) {
-      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni Gemini API Key daal aur fast chat shuru kar!"});
+      chatLogs.add({"sender": "deven", "text": "Namaste! Main God Deven hoon. Settings me apni Gemini API Key daal aur fast chat ya AI call shuru kar!"});
     }
+  }
+
+  void _initTts() async {
+    flutterTts = FlutterTts();
+    await flutterTts.setLanguage("hi-IN");
+    await flutterTts.setSpeechRate(0.5);
+    await flutterTts.setVolume(1.0);
+    await flutterTts.setPitch(1.0);
   }
 
   @override
@@ -86,13 +97,14 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     _chatController.dispose();
     _apiKeyController.dispose();
     _callTimer?.cancel();
+    flutterTts.stop();
     super.dispose();
   }
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key') ?? '';
+      apiKey = prefs.getString('gemini_api_key'] ?? '';
       _apiKeyController.text = apiKey;
     });
   }
@@ -124,9 +136,11 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     }
 
     try {
+      // Robust multi-endpoint fallback to completely prevent 404 errors across v1 and v1beta
       final List<String> apiEndpoints = [
-        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
         'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
         'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey'
       ];
 
@@ -171,18 +185,22 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
       isRinging = true;
       isConnected = false;
       isMuted = false;
-      isSpeakerOn = false;
+      isSpeakerOn = true;
       callStatus = "Ringing God Deven...";
       callDurationSeconds = 0;
     });
 
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 3), () async {
       if (isCallActive && isRinging) {
         setState(() {
           isRinging = false;
           isConnected = true;
           callStatus = "Connected (00:00)";
         });
+        
+        // Speak initial greeting on call
+        await flutterTts.speak("Namaste! Main God Deven hoon. Bataiye, aaj kya help chahiye?");
+
         _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (!isCallActive) {
             timer.cancel();
@@ -203,6 +221,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
 
   void _endAICall() {
     _callTimer?.cancel();
+    flutterTts.stop();
     setState(() {
       isCallActive = false;
       isRinging = false;
@@ -211,10 +230,13 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
     });
   }
 
-  void _toggleMute() {
+  void _toggleMute() async {
     setState(() {
       isMuted = !isMuted;
     });
+    if (isMuted) {
+      await flutterTts.stop();
+    }
   }
 
   void _toggleSpeaker() {
@@ -256,7 +278,6 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -345,7 +366,7 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
                     const SizedBox(height: 10),
                     Text(callStatus, style: TextStyle(color: isConnected ? Colors.greenAccent : Colors.orangeAccent, fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 6),
-                    Text(isRinging ? "Calling agent..." : "Live Hinglish Voice Conversation", style: const TextStyle(color: Colors.white38, fontSize: 12)),
+                    Text(isRinging ? "Calling agent..." : "Live Audio Speaking Active", style: const TextStyle(color: Colors.white38, fontSize: 12)),
                     const Spacer(),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),

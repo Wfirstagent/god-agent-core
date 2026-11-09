@@ -104,14 +104,14 @@ class _DevenHomeScreenState extends State<DevenHomeScreen> with TickerProviderSt
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      apiKey = prefs.getString('gemini_api_key'] ?? '';
+        String apiKey = prefs.getString('gemini_api_key') ?? '';
       _apiKeyController.text = apiKey;
     });
   }
 
   Future<void> _saveSettings(String key) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('gemini_api_key', key.trim());
+        String apiKey = prefs.getString('gemini_api_key') ?? '';
     setState(() {
       apiKey = key.trim();
     });

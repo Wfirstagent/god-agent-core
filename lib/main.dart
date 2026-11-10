@@ -1,4 +1,3 @@
-
 import "package:flutter/material.dart";
 import "package:http/http.dart" as http;
 import "dart:convert";
@@ -41,14 +40,33 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.clear();
 
     try {
-      // Placeholder for Gemini API call
-      await Future.delayed(const Duration(seconds: 1));
-      setState(() {
-        _messages.add({"sender": "ai", "message": "Hello! I am your God Deven AI assistant. How can I help you today?"});
-      });
+      // API call logic for Gemini
+      final response = await http.post(
+        Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY"),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "contents": [
+            {
+              "parts": [{"text": text}]
+            }
+          ]
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final aiMessage = data["candidates"][0]["content"]["parts"][0]["text"];
+        setState(() {
+          _messages.add({"sender": "ai", "message": aiMessage});
+        });
+      } else {
+        setState(() {
+          _messages.add({"sender": "ai", "message": "Error: Failed to fetch response."});
+        });
+      }
     } catch (e) {
       setState(() {
-        _messages.add({"sender": "ai", "message": "Error connecting to AI."});
+        _messages.add({"sender": "ai", "message": "Exception: $e"});
       });
     } finally {
       setState(() {

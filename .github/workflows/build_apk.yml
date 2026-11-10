@@ -31,6 +31,6 @@ jobs:
         run: flutter pub get
 
       - name: Generate Android Native Files
-        run: flutter create --platforms=android .
+        run: flutter create --platforms=android --project-name=god_agent_core .
       - name: Build APK Release
         run: flutter build apk --release

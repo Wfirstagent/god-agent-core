@@ -32,7 +32,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
   final FlutterTts _flutterTts = FlutterTts();
-  final List> messages = [];
+  final List messages = [];
   bool isLoading = false;
 
   @override
@@ -71,7 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     try {
-      final url = Uri.parse("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=$apiKey");
+      final url = Uri.parse("https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=\$apiKey");
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},

@@ -30,5 +30,7 @@ jobs:
       - name: Run flutter pub get
         run: flutter pub get
 
+      - name: Generate Android Native Files
+        run: flutter create --platforms=android .
       - name: Build APK Release
         run: flutter build apk --release

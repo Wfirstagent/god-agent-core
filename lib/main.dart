@@ -27,7 +27,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _controller = TextEditingController();
-  final List> _messages = [];
+  final List _messages = [];
   bool _isLoading = false;
 
   Future<void> _sendMessage(String text) async {

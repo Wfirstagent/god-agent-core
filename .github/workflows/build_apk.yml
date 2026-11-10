@@ -30,8 +30,5 @@ jobs:
       - name: Run flutter pub get
         run: flutter pub get
 
-      - name: Recreate Android Project & Build APK
-        run: |
-          rm -rf android
-          flutter create --platforms=android .
-          flutter build apk --release
+      - name: Build APK Release
+        run: flutter build apk --release

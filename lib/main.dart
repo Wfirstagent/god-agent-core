@@ -1,6 +1,6 @@
-import "package:flutter/material.dart";
-import "package:http/http.dart" as http;
-import "dart:convert";
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() => runApp(const GodAgentApp());
 
@@ -11,7 +11,7 @@ class GodAgentApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: "God Deven AI",
+      title: 'God Deven AI',
       theme: ThemeData.dark(),
       home: const ChatScreen(),
     );
@@ -34,20 +34,19 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.trim().isEmpty) return;
 
     setState(() {
-      _messages.add({"sender": "user", "message": text});
+      _messages.add({'sender': 'user', 'message': text});
       _isLoading = true;
     });
     _controller.clear();
 
     try {
-      // API call logic for Gemini
       final response = await http.post(
-        Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY"),
-        headers: {"Content-Type": "application/json"},
+        Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=YOUR_API_KEY'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          "contents": [
+          'contents': [
             {
-              "parts": [{"text": text}]
+              'parts': [{'text': text}]
             }
           ]
         }),
@@ -55,18 +54,18 @@ class _ChatScreenState extends State<ChatScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final aiMessage = data["candidates"][0]["content"]["parts"][0]["text"];
+        final aiMessage = data['candidates'][0]['content']['parts'][0]['text'];
         setState(() {
-          _messages.add({"sender": "ai", "message": aiMessage});
+          _messages.add({'sender': 'ai', 'message': aiMessage});
         });
       } else {
         setState(() {
-          _messages.add({"sender": "ai", "message": "Error: Failed to fetch response."});
+          _messages.add({'sender': 'ai', 'message': 'Error: Failed to fetch response.'});
         });
       }
     } catch (e) {
       setState(() {
-        _messages.add({"sender": "ai", "message": "Exception: $e"});
+        _messages.add({'sender': 'ai', 'message': 'Exception: $e'});
       });
     } finally {
       setState(() {
@@ -78,7 +77,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("God Deven AI")),
+      appBar: AppBar(title: const Text('God Deven AI')),
       body: Column(
         children: [
           Expanded(
@@ -86,7 +85,7 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: _messages.length,
               itemBuilder: (context, index) {
                 final msg = _messages[index];
-                final isUser = msg["sender"] == "user";
+                final isUser = msg['sender'] == 'user';
                 return ListTile(
                   title: Align(
                     alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
@@ -96,7 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         color: isUser ? Colors.blueAccent : Colors.grey[800],
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(msg["message"] ?? ""),
+                      child: Text(msg['message'] ?? ''),
                     ),
                   ),
                 );
@@ -111,7 +110,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: TextField(
                     controller: _controller,
-                    decoration: const InputDecoration(hintText: "Ask something..."),
+                    decoration: const InputDecoration(hintText: 'Ask something...'),
                   ),
                 ),
                 IconButton(
